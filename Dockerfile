@@ -1,2 +1,2 @@
 FROM ghcr.io/navikt/poao-baseimages/java:17
-COPY /application/target/amt-person-service.jar app.jar
+COPY /build/libs/amt-person-service.jar app.jar
