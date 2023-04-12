@@ -40,3 +40,13 @@ spec:
       enabled: true
   secureLogs:
     enabled: true
+  accessPolicy:
+    outbound:
+      external:
+        - host: pdl-api.dev-fss-pub.nais.io
+  env:
+    - name: PDL_SCOPE
+      value: api://dev-fss.pdl.pdl-api/.default
+    - name: PDL_URL
+      value: https://pdl-api.dev-fss-pub.nais.io
+
