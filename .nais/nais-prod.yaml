@@ -52,6 +52,7 @@ spec:
         - host: veilarboppfolging.prod-fss-pub.nais.io
         - host: norg2.prod-fss-pub.nais.io
         - host: nom-api.intern.nav.no
+        - host: veilarbarena.prod-fss-pub.nais.io
   env:
     - name: PDL_SCOPE
       value: api://prod-fss.pdl.pdl-api/.default
@@ -67,11 +68,15 @@ spec:
       value: https://veilarboppfolging.prod-fss-pub.nais.io
     - name: NORG_URL
       value: https://norg2.prod-fss-pub.nais.io
-    - name: POAO_TILGANG_URL
-      value: http://poao-tilgang.poao.svc.cluster.local
     - name: POAO_TILGANG_SCOPE
       value: api://prod-gcp.poao.poao-tilgang/.default
+    - name: POAO_TILGANG_URL
+      value: http://poao-tilgang.poao.svc.cluster.local
     - name: NOM_SCOPE
       value: api://prod-gcp.nom.nom-api/.default
     - name: NOM_URL
       value: https://nom-api.intern.nav.no
+    - name: VEILARBARENA_SCOPE
+      value: api://prod-fss.pto.veilarbarena/.default
+    - name: VEILARBARENA_URL
+      value: https://veilarbarena.prod-fss-pub.nais.io
