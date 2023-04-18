@@ -2,6 +2,7 @@ package no.nav.amt.person.service.person
 
 import no.nav.amt.person.service.person.dbo.PersonDbo
 import no.nav.amt.person.service.person.model.IdentType
+import no.nav.amt.person.service.person.model.Person
 import no.nav.amt.person.service.utils.getUUID
 import no.nav.amt.person.service.utils.sqlParameters
 import org.springframework.jdbc.core.RowMapper
@@ -31,6 +32,52 @@ class PersonRepository(
 		val parameters = sqlParameters("id" to id)
 
 		return template.query(sql, parameters, rowMapper).first()
+	}
+
+	fun get(personIdent: String): PersonDbo? {
+		val sql = "select * from person where person_ident = :personIdent"
+		val parameters = sqlParameters("personIdent" to personIdent)
+
+		return template.query(sql, parameters, rowMapper).firstOrNull()
+	}
+
+	fun upsert(person: Person) {
+		val sql = """
+			insert into person(
+				id,
+				person_ident,
+				person_ident_type,
+				historiske_identer,
+				fornavn,
+				mellomnavn,
+				etternavn
+			) values (
+				:id,
+				:personIdent,
+				:personIdentType,
+				:historiskeIdenter,
+				:fornavn,
+				:mellomnavn,
+				:etternavn
+			) on conflict(person_ident) do update set
+				fornavn = :fornavn,
+				mellomnavn = :mellomnavn,
+				etternavn = :etternavn,
+				historiske_identer = :historiskeIdenter,
+				modified_at = current_timestamp
+		""".trimIndent()
+
+		val parameters = sqlParameters(
+			"id" to person.id,
+			"personIdent" to person.personIdent,
+			"personIdentType" to person.personIdentType.toString(),
+			"historiskeIdenter" to person.historiskeIdenter.toTypedArray(),
+			"fornavn" to person.fornavn,
+			"mellomnavn" to person.mellomnavn,
+			"etternavn" to person.etternavn
+		)
+
+		template.update(sql, parameters)
 	}
 
 }

@@ -1,14 +1,46 @@
 package no.nav.amt.person.service.person
 
+import no.nav.amt.person.service.clients.pdl.PdlClient
+import no.nav.amt.person.service.person.model.IdentType
 import no.nav.amt.person.service.person.model.Person
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.UUID
 
 @Service
-class PersonService(val repository: PersonRepository) {
+class PersonService(
+	val pdlClient: PdlClient,
+	val repository: PersonRepository,
+) {
+	private val log = LoggerFactory.getLogger(javaClass)
 
 	fun hentPerson(id: UUID): Person {
 		return repository.get(id).toModel()
+	}
+
+	fun hentEllerOpprettPerson(personIdent: String) : Person {
+		return repository.get(personIdent)?.toModel() ?: opprettPerson(personIdent)
+	}
+
+	private fun opprettPerson(personIdent: String): Person {
+		val pdlPerson =	pdlClient.hentPerson(personIdent)
+		val personIdentType = pdlPerson.identer.first { it.ident == personIdent }.gruppe
+
+		val person = Person(
+			id = UUID.randomUUID(),
+			personIdent = personIdent,
+			personIdentType = IdentType.valueOf(personIdentType),
+			historiskeIdenter = pdlPerson.identer.filter { it.ident != personIdent }.map { it.ident },
+			fornavn = pdlPerson.fornavn,
+			mellomnavn = pdlPerson.mellomnavn,
+			etternavn = pdlPerson.etternavn,
+		)
+
+		repository.upsert(person)
+
+		log.info("Opprettet ny person med id ${person.id}")
+
+		return person
 	}
 
 }
