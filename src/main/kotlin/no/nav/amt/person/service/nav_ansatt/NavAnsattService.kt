@@ -1,6 +1,7 @@
 package no.nav.amt.person.service.nav_ansatt
 
 import no.nav.amt.person.service.clients.nom.NomClient
+import no.nav.amt.person.service.clients.veilarboppfolging.VeilarboppfolgingClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.*
@@ -9,6 +10,7 @@ import java.util.*
 class NavAnsattService(
 	private val navAnsattRepository: NavAnsattRepository,
 	private val nomClient: NomClient,
+	private val veilarboppfolgingClient: VeilarboppfolgingClient,
 ) {
 
 	private val log = LoggerFactory.getLogger(javaClass)
@@ -46,5 +48,11 @@ class NavAnsattService(
 
 		return ansatt
 	}
+
+
+	fun hentBrukersVeileder(brukersPersonIdent: String): NavAnsatt? =
+		veilarboppfolgingClient.hentVeilederIdent(brukersPersonIdent)?.let {
+			hentEllerOpprettAnsatt(it)
+		}
 
 }
