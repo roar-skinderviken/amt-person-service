@@ -44,17 +44,16 @@ class NavAnsattRepository(
 		return template.query(sql, parameters, rowMapper).firstOrNull()
 	}
 
-	fun upsert(navAnsatt: NavAnsatt) {
+	fun getAll(): List<NavAnsattDbo> {
 		val sql = """
-			insert into nav_ansatt(id, nav_ident, navn, telefon, epost)
-			values (:id, :navIdent, :navn, :telefon, :epost)
-			on conflict (nav_ident) do update set
-				navn = :navn,
-				telefon = :telefon,
-				epost = :epost,
-				modified_at = current_timestamp
+			select * from nav_ansatt
 		""".trimIndent()
 
+		return template.jdbcTemplate.query(sql, rowMapper)
+	}
+
+
+	fun upsert(navAnsatt: NavAnsatt) {
 		val parameters = sqlParameters(
 			"id" to navAnsatt.id,
 			"navIdent" to navAnsatt.navIdent,
@@ -63,7 +62,32 @@ class NavAnsattRepository(
 			"epost" to navAnsatt.epost,
 		)
 
-		template.update(sql, parameters)
+		template.update(upsertSql, parameters)
 	}
+
+	fun upsertMany(ansatte: List<NavAnsatt>) {
+		val parameters = ansatte.map { navAnsatt ->
+			sqlParameters(
+				"id" to navAnsatt.id,
+				"navIdent" to navAnsatt.navIdent,
+				"navn" to navAnsatt.navn,
+				"telefon" to navAnsatt.telefon,
+				"epost" to navAnsatt.epost,
+			)
+		}
+
+		template.batchUpdate(upsertSql, parameters.toTypedArray())
+
+	}
+
+	private val upsertSql = """
+			insert into nav_ansatt(id, nav_ident, navn, telefon, epost)
+			values (:id, :navIdent, :navn, :telefon, :epost)
+			on conflict (nav_ident) do update set
+				navn = :navn,
+				telefon = :telefon,
+				epost = :epost,
+				modified_at = current_timestamp
+		""".trimIndent()
 
 }

@@ -1,7 +1,9 @@
 package no.nav.amt.person.service.clients.nom
 
 import io.kotest.assertions.fail
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import no.nav.amt.person.service.data.TestData
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.AfterEach
@@ -35,8 +37,8 @@ class NomClientTest {
 				"ressurser": [
 				  {
 					"ressurs": {
-					  "navIdent": "H156147",
-					  "visningsNavn": "Alias",
+					  "navident": "H156147",
+					  "visningsnavn": "Alias",
 					  "fornavn": "Blaut",
 					  "etternavn": "Slappfisk",
 					  "epost": "blaut.slappfisk@nav.no",
@@ -67,8 +69,8 @@ class NomClientTest {
 				"ressurser": [
 				  {
 					"ressurs": {
-					  "navIdent": "H156147",
-					  "visningsNavn": null,
+					  "navident": "H156147",
+					  "visningsnavn": null,
 					  "fornavn": "Blaut",
 					  "etternavn": "Slappfisk",
 					  "epost": "blaut.slappfisk@nav.no",
@@ -99,8 +101,8 @@ class NomClientTest {
 				"ressurser": [
 				  {
 					"ressurs": {
-					  "navIdent": "H156147",
-					  "visningsNavn": "Alias",
+					  "navident": "H156147",
+					  "visningsnavn": "Alias",
 					  "fornavn": "Blaut",
 					  "etternavn": "Slappfisk",
 					  "epost": "blaut.slappfisk@nav.no",
@@ -176,8 +178,8 @@ class NomClientTest {
 				"ressurser": [
 				  {
 					"ressurs": {
-					  "navIdent": "H156147",
-					  "visningsNavn": "Alias",
+					  "navident": "H156147",
+					  "visningsnavn": "Alias",
 					  "fornavn": "Blaut",
 					  "etternavn": "Slappfisk",
 					  "epost": "blaut.slappfisk@nav.no",
@@ -209,8 +211,8 @@ class NomClientTest {
 				"ressurser": [
 				  {
 					"ressurs": {
-					  "navIdent": "H156147",
-					  "visningsNavn": "Alias",
+					  "navident": "H156147",
+					  "visningsnavn": "Alias",
 					  "fornavn": "Blaut",
 					  "etternavn": "Slappfisk",
 					  "epost": "blaut.slappfisk@nav.no",
@@ -230,5 +232,100 @@ class NomClientTest {
 		val veileder = client.hentNavAnsatt("H156147") ?: fail("Fant ikke veileder")
 
 		veileder.telefonnummer shouldBe tjenesteTelefon
+	}
+
+	@Test
+	fun `hentVeiledere - veiledere finnes - returnerer veiledere`() {
+		val veiledere = listOf(TestData.lagNavAnsatt(), TestData.lagNavAnsatt())
+		val veilederRespons = """
+			{
+			  "data": {
+				"ressurser": [
+				  {
+					"ressurs": {
+					  "navident": "${veiledere[0].navIdent}",
+					  "visningsnavn": "${veiledere[0].navn}",
+					  "fornavn": "Fornavn",
+					  "etternavn": "Etternavn",
+					  "epost": "${veiledere[0].epost}",
+					  "telefon": [{ "type": "NAV_TJENESTE_TELEFON", "nummer": "${veiledere[0].telefon}" }]
+					},
+					"code": "OK"
+				  },
+				  {
+					"ressurs": {
+					  "navident": "${veiledere[1].navIdent}",
+					  "visningsnavn": "${veiledere[1].navn}",
+					  "fornavn": "Fornavn",
+					  "etternavn": "Etternavn",
+					  "epost": "${veiledere[1].epost}",
+					  "telefon": [{ "type": "NAV_TJENESTE_TELEFON", "nummer": "${veiledere[1].telefon}" }]
+					},
+					"code": "OK"
+				  }
+				]
+			  }
+			}
+		""".trimIndent()
+
+		server.enqueue(MockResponse().setBody(veilederRespons))
+
+		val faktiskeVeiledere = client.hentNavAnsatte(veiledere.map { it.navIdent })
+		val v1 = faktiskeVeiledere.find { it.navIdent == veiledere[0].navIdent }!!
+		val v2 = faktiskeVeiledere.find { it.navIdent == veiledere[1].navIdent }!!
+
+		v1.navIdent shouldBe veiledere[0].navIdent
+		v1.navn shouldBe veiledere[0].navn
+		v1.telefonnummer shouldBe veiledere[0].telefon
+		v1.epost shouldBe veiledere[0].epost
+
+		v2.navIdent shouldBe veiledere[1].navIdent
+		v2.navn shouldBe veiledere[1].navn
+		v2.telefonnummer shouldBe veiledere[1].telefon
+		v2.epost shouldBe veiledere[1].epost
+	}
+
+	@Test
+	fun `hentVeiledere - en veileder finnes ikke - returnerer veileder som finnes`() {
+		val veileder = TestData.lagNavAnsatt()
+		val feilIdent = "Feil Ident"
+
+		val veilederRespons = """
+			{
+			  "data": {
+				"ressurser": [
+				  {
+					"ressurs": {
+					  "navident": "${veileder.navIdent}",
+					  "visningsnavn": "${veileder.navn}",
+					  "fornavn": "Fornavn",
+					  "etternavn": "Etternavn",
+					  "epost": "${veileder.epost}",
+					  "telefon": [{ "type": "NAV_TJENESTE_TELEFON", "nummer": "${veileder.telefon}" }]
+					},
+					"code": "OK"
+				  },
+				  {
+					"code": "NOT_FOUND",
+					"ressurs": null
+				  }
+				]
+			  }
+			}
+		""".trimIndent()
+
+		server.enqueue(MockResponse().setBody(veilederRespons))
+
+		val faktiskeVeiledere = client.hentNavAnsatte(listOf(veileder.navIdent, feilIdent))
+
+		val v1 = faktiskeVeiledere.find { it.navIdent == veileder.navIdent }!!
+
+		faktiskeVeiledere.find { it.navIdent == feilIdent } shouldBe null
+		faktiskeVeiledere shouldHaveSize 1
+
+		v1.navIdent shouldBe veileder.navIdent
+		v1.navn shouldBe veileder.navn
+		v1.telefonnummer shouldBe veileder.telefon
+		v1.epost shouldBe veileder.epost
 	}
 }
