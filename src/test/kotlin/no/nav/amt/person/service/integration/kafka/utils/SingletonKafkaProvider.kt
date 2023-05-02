@@ -43,7 +43,7 @@ object SingletonKafkaProvider {
 		return properties
 	}
 
-	private fun getHost(): String {
+	fun getHost(): String {
 		if (kafkaContainer == null) {
 			log.info("Starting new Kafka Instance...")
 			kafkaContainer = KafkaContainer(DockerImageName.parse(getKafkaImage()))
