@@ -1,6 +1,7 @@
 package no.nav.amt.person.service.nav_bruker
 
 import no.nav.amt.person.service.clients.krr.KrrProxyClient
+import no.nav.amt.person.service.clients.pdl.PdlClient
 import no.nav.amt.person.service.config.SecureLog.secureLog
 import no.nav.amt.person.service.nav_ansatt.NavAnsatt
 import no.nav.amt.person.service.nav_ansatt.NavAnsattService
@@ -10,6 +11,7 @@ import no.nav.amt.person.service.person.PersonService
 import no.nav.amt.person.service.person.RolleService
 import no.nav.amt.person.service.person.model.Person
 import no.nav.amt.person.service.person.model.Rolle
+import no.nav.amt.person.service.person.model.erBeskyttet
 import no.nav.poao_tilgang.client.PoaoTilgangClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -24,6 +26,7 @@ class NavBrukerService(
 	private val rolleService: RolleService,
 	private val krrProxyClient: KrrProxyClient,
 	private val poaoTilgangClient: PoaoTilgangClient,
+	private val pdlClient: PdlClient,
 ) {
 
 	private val log = LoggerFactory.getLogger(javaClass)
@@ -41,11 +44,13 @@ class NavBrukerService(
 	}
 
 	private fun opprettNavBruker(personIdent: String): NavBruker {
-		if (personService.erAdressebeskyttet(personIdent)) {
+		val personOpplysninger = pdlClient.hentPerson(personIdent)
+
+		if (personOpplysninger.adressebeskyttelseGradering.erBeskyttet()) {
 			throw IllegalStateException("Nav bruker er adreessebeskyttet og kan ikke lagres")
 		}
 
-		val person = personService.hentEllerOpprettPerson(personIdent)
+		val person = personService.hentEllerOpprettPerson(personIdent, personOpplysninger)
 		val veileder = navAnsattService.hentBrukersVeileder(personIdent)
 		val navEnhet = navEnhetService.hentNavEnhetForBruker(personIdent)
 		val kontaktinformasjon = krrProxyClient.hentKontaktinformasjon(personIdent)
@@ -56,7 +61,7 @@ class NavBrukerService(
 			person = person,
 			navVeileder = veileder,
 			navEnhet = navEnhet,
-			telefon = kontaktinformasjon.telefonnummer,
+			telefon = kontaktinformasjon.telefonnummer ?:  personOpplysninger.telefonnummer,
 			epost = kontaktinformasjon.epost,
 			erSkjermet = erSkjermet,
 		)
@@ -87,12 +92,13 @@ class NavBrukerService(
 		personer.forEach {person ->
 			repository.finnBrukerId(person.personIdent)?.let { brukerId ->
 				val kontaktinformasjon = krrProxyClient.hentKontaktinformasjon(person.personIdent)
-				repository.oppdaterKontaktinformasjon(
-					brukerId,
-					kontaktinformasjon.telefonnummer,
-					kontaktinformasjon.epost,
-				)
+				val pdlTelefon = pdlClient.hentTelefon(person.personIdent)
 
+				repository.oppdaterKontaktinformasjon(
+					navBrukerId = brukerId,
+					telefon = kontaktinformasjon.telefonnummer ?: pdlTelefon,
+					epost = kontaktinformasjon.epost,
+				)
 			}
 		}
 
