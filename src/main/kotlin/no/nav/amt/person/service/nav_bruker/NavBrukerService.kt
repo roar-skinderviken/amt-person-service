@@ -12,6 +12,7 @@ import no.nav.amt.person.service.person.RolleService
 import no.nav.amt.person.service.person.model.Person
 import no.nav.amt.person.service.person.model.Rolle
 import no.nav.amt.person.service.person.model.erBeskyttet
+import no.nav.amt.person.service.utils.EnvUtils
 import no.nav.poao_tilgang.client.PoaoTilgangClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -53,7 +54,7 @@ class NavBrukerService(
 		val person = personService.hentEllerOpprettPerson(personIdent, personOpplysninger)
 		val veileder = navAnsattService.hentBrukersVeileder(personIdent)
 		val navEnhet = navEnhetService.hentNavEnhetForBruker(personIdent)
-		val kontaktinformasjon = krrProxyClient.hentKontaktinformasjon(personIdent)
+		val kontaktinformasjon = krrProxyClient.hentKontaktinformasjon(personIdent).getOrNull()
 		val erSkjermet = poaoTilgangClient.erSkjermetPerson(personIdent).getOrThrow()
 
 		val navBruker = NavBruker(
@@ -61,8 +62,8 @@ class NavBrukerService(
 			person = person,
 			navVeileder = veileder,
 			navEnhet = navEnhet,
-			telefon = kontaktinformasjon.telefonnummer ?:  personOpplysninger.telefonnummer,
-			epost = kontaktinformasjon.epost,
+			telefon = kontaktinformasjon?.telefonnummer ?:  personOpplysninger.telefonnummer,
+			epost = kontaktinformasjon?.epost,
 			erSkjermet = erSkjermet,
 		)
 
@@ -90,18 +91,27 @@ class NavBrukerService(
 
 	fun oppdaterKontaktinformasjon(personer: List<Person>) {
 		personer.forEach {person ->
-			repository.finnBrukerId(person.personIdent)?.let { brukerId ->
-				val kontaktinformasjon = krrProxyClient.hentKontaktinformasjon(person.personIdent)
-				val pdlTelefon = pdlClient.hentTelefon(person.personIdent)
+			oppdaterKontaktinformasjon(person.personIdent)
+		}
+	}
 
-				repository.oppdaterKontaktinformasjon(
-					navBrukerId = brukerId,
-					telefon = kontaktinformasjon.telefonnummer ?: pdlTelefon,
-					epost = kontaktinformasjon.epost,
-				)
-			}
+	private fun oppdaterKontaktinformasjon(personIdent: String) {
+		val eksisterendeKontaktinfo = repository.hentKontaktinformasjonHvisBrukerFinnes(personIdent) ?: return
+
+		val krrKontaktinfo = krrProxyClient.hentKontaktinformasjon(personIdent).getOrElse {
+			val feilmelding = "Klarte ikke hente kontaktinformasjon fra KRR-Proxy: ${it.message}"
+
+			if (EnvUtils.isDev()) log.info(feilmelding)
+			else log.error(feilmelding)
+
+			return
 		}
 
+		val telefon = krrKontaktinfo.telefonnummer ?: pdlClient.hentTelefon(personIdent)
+
+		if (eksisterendeKontaktinfo.telefon == telefon && eksisterendeKontaktinfo.epost == krrKontaktinfo.epost) return
+
+		repository.oppdaterKontaktinformasjon(eksisterendeKontaktinfo.copy(telefon = telefon, epost = krrKontaktinfo.epost))
 	}
 
 	fun slettBrukere(personer: List<Person>) {

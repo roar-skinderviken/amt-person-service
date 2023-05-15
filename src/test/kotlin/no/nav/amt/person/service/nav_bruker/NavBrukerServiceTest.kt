@@ -9,6 +9,7 @@ import no.nav.amt.person.service.clients.krr.KrrProxyClient
 import no.nav.amt.person.service.clients.pdl.PdlClient
 import no.nav.amt.person.service.data.TestData
 import no.nav.amt.person.service.nav_ansatt.NavAnsattService
+import no.nav.amt.person.service.nav_bruker.dbo.NavBrukerKontaktinfo
 import no.nav.amt.person.service.nav_enhet.NavEnhetService
 import no.nav.amt.person.service.person.PersonService
 import no.nav.amt.person.service.person.RolleService
@@ -69,7 +70,7 @@ class NavBrukerServiceTest {
 		every { personService.hentEllerOpprettPerson(person.personIdent, personOpplysninger) } returns person.toModel()
 		every { navAnsattService.hentBrukersVeileder(person.personIdent) } returns veileder.toModel()
 		every { navEnhetService.hentNavEnhetForBruker(person.personIdent) } returns navEnhet.toModel()
-		every { krrProxyClient.hentKontaktinformasjon(person.personIdent) } returns kontaktinformasjon
+		every { krrProxyClient.hentKontaktinformasjon(person.personIdent) } returns Result.success(kontaktinformasjon)
 		every { poaoTilgangClient.erSkjermetPerson(person.personIdent) } returns ApiResult(result = erSkjermet, throwable = null)
 		every { rolleService.harRolle(person.id, Rolle.NAV_BRUKER) } returns false
 
@@ -100,17 +101,17 @@ class NavBrukerServiceTest {
 	fun `oppdaterKontaktInformasjon - ingen brukere finnes - oppdaterer ikke`() {
 		val personer = listOf(TestData.lagPerson().toModel(), TestData.lagPerson().toModel())
 
-		every { repository.finnBrukerId(any()) } returns null
+		every { repository.hentKontaktinformasjonHvisBrukerFinnes(any()) } returns null
 
 		service.oppdaterKontaktinformasjon(personer)
 
 		verify(exactly = 0) { pdlClient.hentTelefon(any()) }
 		verify(exactly = 0) { krrProxyClient.hentKontaktinformasjon(any()) }
-		verify(exactly = 0) { repository.oppdaterKontaktinformasjon(any(), any(), any()) }
+		verify(exactly = 0) { repository.oppdaterKontaktinformasjon(any()) }
 	}
 
 	@Test
-	fun `oppdaterKontaktInformasjon - telefon er registrert i krr og pdl - oppdaterer bruker med telefon fra krr`() {
+	fun `oppdaterKontaktInformasjon - telefon er registrert i krr - oppdaterer bruker med telefon fra krr`() {
 		val bruker = TestData.lagNavBruker()
 		val kontakinformasjon = Kontaktinformasjon(
 				"ny epost",
@@ -118,14 +119,55 @@ class NavBrukerServiceTest {
 			)
 
 		every { repository.finnBrukerId(bruker.person.personIdent) } returns bruker.id
-		every { pdlClient.hentTelefon(bruker.person.personIdent) } returns "pdl-telefon"
-		every { krrProxyClient.hentKontaktinformasjon(bruker.person.personIdent) } returns kontakinformasjon
+		every { repository.hentKontaktinformasjonHvisBrukerFinnes(bruker.person.personIdent) } returns
+			NavBrukerKontaktinfo(bruker.id, bruker.telefon, bruker.epost)
+		every { krrProxyClient.hentKontaktinformasjon(bruker.person.personIdent) } returns Result.success(kontakinformasjon)
+
+		service.oppdaterKontaktinformasjon(listOf(bruker.person.toModel()))
+
+		verify(exactly = 1) { krrProxyClient.hentKontaktinformasjon(bruker.person.personIdent) }
+		verify(exactly = 1) { repository.oppdaterKontaktinformasjon(
+				NavBrukerKontaktinfo(bruker.id, kontakinformasjon.telefonnummer, kontakinformasjon.epost)
+			)
+		}
+	}
+	@Test
+	fun `oppdaterKontaktInformasjon - telefon er ikke registrert i krr - oppdaterer bruker med telefon fra pdl`() {
+		val bruker = TestData.lagNavBruker()
+		val kontakinformasjon = Kontaktinformasjon(
+			"ny epost",
+			null,
+		)
+		val pdlTelefon = "pdl-telefon"
+
+		every { repository.finnBrukerId(bruker.person.personIdent) } returns bruker.id
+		every { pdlClient.hentTelefon(bruker.person.personIdent) } returns pdlTelefon
+		every { repository.hentKontaktinformasjonHvisBrukerFinnes(bruker.person.personIdent) } returns
+			NavBrukerKontaktinfo(bruker.id, bruker.telefon, bruker.epost)
+		every { krrProxyClient.hentKontaktinformasjon(bruker.person.personIdent) } returns Result.success(kontakinformasjon)
 
 		service.oppdaterKontaktinformasjon(listOf(bruker.person.toModel()))
 
 		verify(exactly = 1) { pdlClient.hentTelefon(bruker.person.personIdent) }
 		verify(exactly = 1) { krrProxyClient.hentKontaktinformasjon(bruker.person.personIdent) }
-		verify(exactly = 1) { repository.oppdaterKontaktinformasjon(bruker.id, kontakinformasjon.telefonnummer, kontakinformasjon.epost) }
+		verify(exactly = 1) { repository.oppdaterKontaktinformasjon(
+			NavBrukerKontaktinfo(bruker.id, pdlTelefon, kontakinformasjon.epost)
+		) }
+	}
+
+	@Test
+	fun `oppdaterKontaktInformasjon - krr feiler - oppdaterer ikke`() {
+		val bruker = TestData.lagNavBruker()
+
+		every { repository.finnBrukerId(bruker.person.personIdent) } returns bruker.id
+		every { repository.hentKontaktinformasjonHvisBrukerFinnes(bruker.person.personIdent) } returns
+			NavBrukerKontaktinfo(bruker.id, bruker.telefon, bruker.epost)
+		every { krrProxyClient.hentKontaktinformasjon(bruker.person.personIdent) } returns Result.failure(RuntimeException())
+
+		service.oppdaterKontaktinformasjon(listOf(bruker.person.toModel()))
+
+		verify(exactly = 1) { krrProxyClient.hentKontaktinformasjon(bruker.person.personIdent) }
+		verify(exactly = 0) { repository.oppdaterKontaktinformasjon(any()) }
 	}
 
 }

@@ -4,6 +4,7 @@ import io.kotest.matchers.shouldBe
 import no.nav.amt.person.service.data.TestData
 import no.nav.amt.person.service.data.TestDataRepository
 import no.nav.amt.person.service.nav_bruker.dbo.NavBrukerDbo
+import no.nav.amt.person.service.nav_bruker.dbo.NavBrukerKontaktinfo
 import no.nav.amt.person.service.nav_bruker.dbo.NavBrukerUpsert
 import no.nav.amt.person.service.utils.DbTestDataUtils
 import no.nav.amt.person.service.utils.SingletonPostgresContainer
@@ -173,7 +174,7 @@ class NavBrukerRepositoryTest {
 		val nyttNummer = "nytt telefonnummer"
 		val nyEpost = "ny@epost.dev"
 
-		repository.oppdaterKontaktinformasjon(bruker.id, nyttNummer, nyEpost)
+		repository.oppdaterKontaktinformasjon(NavBrukerKontaktinfo(bruker.id, nyttNummer, nyEpost))
 
 		val faktiskBruker = repository.get(bruker.id)
 		faktiskBruker.telefon shouldBe nyttNummer
@@ -188,6 +189,17 @@ class NavBrukerRepositoryTest {
 		repository.deleteByPersonId(bruker.person.id)
 
 		repository.get(bruker.person.personIdent) shouldBe null
+	}
+
+	@Test
+	fun `hentKontaktinformasjonHvisBrukerFinnes - bruker finnes - returnerer kontaktinfo`() {
+		val bruker = TestData.lagNavBruker(epost = null)
+		testRepository.insertNavBruker(bruker)
+
+		val kontaktinfo = repository.hentKontaktinformasjonHvisBrukerFinnes(bruker.person.personIdent)
+		kontaktinfo!!.navBrukerId shouldBe bruker.id
+		kontaktinfo.telefon shouldBe bruker.telefon
+		kontaktinfo.epost shouldBe bruker.epost
 	}
 
 	private fun sammenlign(
