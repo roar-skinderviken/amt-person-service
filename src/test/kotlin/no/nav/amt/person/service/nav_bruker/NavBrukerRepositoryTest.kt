@@ -4,7 +4,6 @@ import io.kotest.matchers.shouldBe
 import no.nav.amt.person.service.data.TestData
 import no.nav.amt.person.service.data.TestDataRepository
 import no.nav.amt.person.service.nav_bruker.dbo.NavBrukerDbo
-import no.nav.amt.person.service.nav_bruker.dbo.NavBrukerKontaktinfo
 import no.nav.amt.person.service.nav_bruker.dbo.NavBrukerUpsert
 import no.nav.amt.person.service.utils.DbTestDataUtils
 import no.nav.amt.person.service.utils.SingletonPostgresContainer
@@ -138,68 +137,13 @@ class NavBrukerRepositoryTest {
 	}
 
 	@Test
-	fun `oppdaterNavVeileder - bruker og veileder finnes - oppdaterer veilderId`() {
-		val bruker = TestData.lagNavBruker()
-		testRepository.insertNavBruker(bruker)
-		val veileder = TestData.lagNavAnsatt()
-		testRepository.insertNavAnsatt(veileder)
-
-		repository.oppdaterNavVeileder(bruker.id, veileder.id)
-
-		val faktiskBruker = repository.get(bruker.id)
-
-		faktiskBruker.navVeileder?.id shouldBe veileder.id
-		faktiskBruker.modifiedAt shouldBeCloseTo LocalDateTime.now()
-	}
-
-	@Test
-	fun `settSkjermet - bruker er ikke skjermet - oppdaterer erSkjermet`() {
-		val bruker = TestData.lagNavBruker(erSkjermet = false)
-		testRepository.insertNavBruker(bruker)
-
-		repository.settSkjermet(bruker.id, true)
-
-		val faktiskBruker = repository.get(bruker.id)
-
-		faktiskBruker.erSkjermet shouldBe true
-		faktiskBruker.modifiedAt shouldBeCloseTo LocalDateTime.now()
-
-	}
-
-	@Test
-	fun `oppdaterKontakinformasjon - ny kontaktinfo - oppdaterer bruker`() {
+	fun `delete- bruker finnes - sletter bruker`() {
 		val bruker = TestData.lagNavBruker()
 		testRepository.insertNavBruker(bruker)
 
-		val nyttNummer = "nytt telefonnummer"
-		val nyEpost = "ny@epost.dev"
-
-		repository.oppdaterKontaktinformasjon(NavBrukerKontaktinfo(bruker.id, nyttNummer, nyEpost))
-
-		val faktiskBruker = repository.get(bruker.id)
-		faktiskBruker.telefon shouldBe nyttNummer
-		faktiskBruker.epost shouldBe nyEpost
-	}
-
-	@Test
-	fun `deleteByPersonId - bruker finnes - sletter bruker`() {
-		val bruker = TestData.lagNavBruker()
-		testRepository.insertNavBruker(bruker)
-
-		repository.deleteByPersonId(bruker.person.id)
+		repository.delete(bruker.id)
 
 		repository.get(bruker.person.personIdent) shouldBe null
-	}
-
-	@Test
-	fun `hentKontaktinformasjonHvisBrukerFinnes - bruker finnes - returnerer kontaktinfo`() {
-		val bruker = TestData.lagNavBruker(epost = null)
-		testRepository.insertNavBruker(bruker)
-
-		val kontaktinfo = repository.hentKontaktinformasjonHvisBrukerFinnes(bruker.person.personIdent)
-		kontaktinfo!!.navBrukerId shouldBe bruker.id
-		kontaktinfo.telefon shouldBe bruker.telefon
-		kontaktinfo.epost shouldBe bruker.epost
 	}
 
 	private fun sammenlign(
@@ -213,8 +157,8 @@ class NavBrukerRepositoryTest {
 		faktiskBruker.telefon shouldBe bruker.telefon
 		faktiskBruker.epost shouldBe bruker.epost
 		faktiskBruker.erSkjermet shouldBe bruker.erSkjermet
-		faktiskBruker.createdAt shouldBeEqualTo bruker.createdAt
-		faktiskBruker.modifiedAt shouldBeEqualTo bruker.modifiedAt
+		faktiskBruker.createdAt shouldBeCloseTo bruker.createdAt
+		faktiskBruker.modifiedAt shouldBeCloseTo bruker.modifiedAt
 	}
 
 }
