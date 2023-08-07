@@ -1,10 +1,14 @@
 package no.nav.amt.person.service.kafka.producer
 
 import no.nav.amt.person.service.kafka.config.KafkaTopicProperties
+import no.nav.amt.person.service.kafka.producer.dto.ArrangorAnsattDtoV1
+import no.nav.amt.person.service.kafka.producer.dto.NavAnsattDtoV1
 import no.nav.amt.person.service.kafka.producer.dto.NavBrukerDtoV1
 import no.nav.amt.person.service.kafka.producer.dto.NavEnhetDtoV1
+import no.nav.amt.person.service.nav_ansatt.NavAnsatt
 import no.nav.amt.person.service.nav_bruker.NavBruker
-import no.nav.amt.person.service.utils.JsonUtils
+import no.nav.amt.person.service.person.model.Person
+import no.nav.amt.person.service.utils.JsonUtils.toJsonString
 import no.nav.common.kafka.producer.KafkaProducerClient
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.springframework.stereotype.Service
@@ -32,7 +36,7 @@ class KafkaProducerService(
 		)
 
 		val key = navBruker.person.id.toString()
-		val value =  JsonUtils.toJsonString(navBrukerDto)
+		val value =  toJsonString(navBrukerDto)
 		val record = ProducerRecord(kafkaTopicProperties.amtNavBrukerTopic, key, value)
 
 		kafkaProducerClient.sendSync(record)
@@ -45,4 +49,33 @@ class KafkaProducerService(
 		kafkaProducerClient.sendSync(record)
 	}
 
+	fun publiserArrangorAnsatt(ansatt: Person) {
+		val key = ansatt.id.toString()
+		val value = toJsonString(
+			ArrangorAnsattDtoV1(
+				id = ansatt.id,
+				personident = ansatt.personident,
+				fornavn = ansatt.fornavn,
+				mellomnavn = ansatt.mellomnavn,
+				etternavn = ansatt.etternavn,
+			)
+		)
+
+		kafkaProducerClient.sendSync(ProducerRecord(kafkaTopicProperties.amtArrangorAnsattPersonaliaTopic, key, value))
+	}
+
+	fun publiserNavAnsatt(ansatt: NavAnsatt) {
+		val key = ansatt.id.toString()
+		val value = toJsonString(
+			NavAnsattDtoV1(
+				id = ansatt.id,
+				navident = ansatt.navIdent,
+				navn = ansatt.navn,
+				telefon = ansatt.telefon,
+				epost = ansatt.epost,
+			)
+		)
+
+		kafkaProducerClient.sendSync(ProducerRecord(kafkaTopicProperties.amtNavAnsattPersonaliaTopic, key, value))
+	}
 }

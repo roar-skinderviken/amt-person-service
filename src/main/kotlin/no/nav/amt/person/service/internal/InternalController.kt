@@ -2,10 +2,13 @@ package no.nav.amt.person.service.internal
 
 import jakarta.servlet.http.HttpServletRequest
 import no.nav.amt.person.service.kafka.producer.KafkaProducerService
+import no.nav.amt.person.service.nav_ansatt.NavAnsattService
 import no.nav.amt.person.service.nav_bruker.NavBrukerRepository
 import no.nav.amt.person.service.nav_bruker.NavBrukerService
 import no.nav.amt.person.service.nav_bruker.dbo.NavBrukerDbo
+import no.nav.amt.person.service.person.ArrangorAnsattService
 import no.nav.amt.person.service.person.PersonService
+import no.nav.amt.person.service.person.model.Person
 import no.nav.amt.person.service.utils.EnvUtils.isDev
 import no.nav.common.job.JobRunner
 import no.nav.security.token.support.core.api.Unprotected
@@ -28,7 +31,9 @@ class InternalController(
 	private val navBrukerService: NavBrukerService,
 	private val personUpdater: PersonUpdater,
 	private val navBrukerRepository: NavBrukerRepository,
-	private val kafkaProducerService: KafkaProducerService
+	private val kafkaProducerService: KafkaProducerService,
+	private val arrangorAnsattService: ArrangorAnsattService,
+	private val navAnsattService: NavAnsattService,
 ) {
 	private val log = LoggerFactory.getLogger(InternalController::class.java)
 
@@ -80,6 +85,51 @@ class InternalController(
 		} else {
 			throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
 		}
+	}
+
+	@Unprotected
+	@GetMapping("/arrangor-ansatte/republiser")
+	fun republiserArrangorAnsatte(
+		servlet: HttpServletRequest,
+		@RequestParam(value = "startFromOffset", required = false) startFromOffset: Int?,
+		@RequestParam(value = "batchSize", required = false) batchSize: Int?) {
+		if (isInternal(servlet)) {
+			JobRunner.runAsync("republiser-arrangor-ansatte") {
+				republiserAlleArrangorAnsatte(startFromOffset?:0, batchSize?:500)
+			}
+		} else {
+			throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
+		}
+	}
+
+	@Unprotected
+	@GetMapping("/nav-ansatte/republiser")
+	fun republiserNavAnsatte(servlet: HttpServletRequest) {
+		if (isInternal(servlet)) {
+			JobRunner.runAsync("republiser-nav-ansatte") {
+				republiserAlleNavAnsatte()
+			}
+		} else {
+			throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
+		}
+	}
+
+	private fun republiserAlleNavAnsatte() {
+		val ansatte = navAnsattService.getAll()
+		ansatte.forEach { kafkaProducerService.publiserNavAnsatt(it) }
+		log.info("Publiserte ${ansatte.size} navansatte")
+	}
+
+	private fun republiserAlleArrangorAnsatte(startFromOffset: Int, batchSize: Int) {
+		var offset = startFromOffset
+		var ansatte: List<Person>
+
+		do {
+			ansatte = arrangorAnsattService.getAll(offset, batchSize)
+			ansatte.forEach { kafkaProducerService.publiserArrangorAnsatt(it) }
+			log.info("Publiserte arrangøransatte fra offset $offset til ${offset + ansatte.size}")
+			offset += batchSize
+		} while (ansatte.isNotEmpty())
 	}
 
 	private fun republiserAlleNavBrukere(startFromOffset: Int, batchSize: Int) {
