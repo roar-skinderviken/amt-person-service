@@ -12,24 +12,24 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class NavAnsattUpdaterTest {
-	lateinit var repository: NavAnsattRepository
+	lateinit var navAnsattService: NavAnsattService
 	lateinit var nomClient: NomClientImpl
 	lateinit var updater: NavAnsattUpdater
 
 	@BeforeEach
 	fun setup() {
-		repository = mockk(relaxUnitFun = true)
+		navAnsattService = mockk(relaxUnitFun = true)
 		nomClient = mockk()
 
-		updater = NavAnsattUpdater(repository, nomClient)
+		updater = NavAnsattUpdater(navAnsattService, nomClient)
 	}
 
 	@Test
 	fun `oppdaterAlle - navIdent mangler hos Nom - logger warning`() {
-		val ansatt1 = TestData.lagNavAnsatt()
-		val ansatt2 = TestData.lagNavAnsatt()
+		val ansatt1 = TestData.lagNavAnsatt().toModel()
+		val ansatt2 = TestData.lagNavAnsatt().toModel()
 
-		every { repository.getAll() } returns listOf(ansatt1, ansatt2)
+		every { navAnsattService.getAll() } returns listOf(ansatt1, ansatt2)
 		every { nomClient.hentNavAnsatte(listOf(ansatt1.navIdent, ansatt2.navIdent)) } returns listOf(
 			NomNavAnsatt(
 				navIdent = ansatt1.navIdent,
@@ -51,8 +51,47 @@ class NavAnsattUpdaterTest {
 			} shouldBe true
 
 		}
+	}
 
-		verify(exactly = 1) { repository.upsertMany(listOf(ansatt1.toModel())) }
+	@Test
+	fun `oppdaterAlle - ansatt er ikke endret - oppdaterer ikke`() {
+		val ansatt = TestData.lagNavAnsatt().toModel()
+
+		every { navAnsattService.getAll() } returns listOf(ansatt)
+		every { nomClient.hentNavAnsatte(listOf(ansatt.navIdent)) } returns listOf(
+			NomNavAnsatt(
+				navIdent = ansatt.navIdent,
+				navn = ansatt.navn,
+				telefonnummer = ansatt.telefon,
+				epost = ansatt.epost,
+			)
+		)
+
+		updater.oppdaterAlle()
+
+		verify(exactly = 0) { navAnsattService.upsertMany(listOf(ansatt)) }
+	}
+
+	@Test
+	fun `oppdaterAlle - ansatt er endret - oppdaterer ansatt`() {
+		val ansatt = TestData.lagNavAnsatt().toModel()
+		val oppdatertAnsatt = ansatt.copy(navn = "Foo Bar")
+
+		every { navAnsattService.getAll() } returns listOf(ansatt)
+		every { nomClient.hentNavAnsatte(listOf(ansatt.navIdent)) } returns listOf(
+			NomNavAnsatt(
+				navIdent = oppdatertAnsatt.navIdent,
+				navn = oppdatertAnsatt.navn,
+				telefonnummer = oppdatertAnsatt.telefon,
+				epost = oppdatertAnsatt.epost,
+			)
+		)
+
+		updater.oppdaterAlle()
+
+		verify(exactly = 1) {
+			navAnsattService.upsertMany(listOf(oppdatertAnsatt))
+		}
 	}
 
 }
