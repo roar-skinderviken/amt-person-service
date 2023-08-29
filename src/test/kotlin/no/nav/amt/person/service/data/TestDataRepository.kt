@@ -182,6 +182,7 @@ class TestDataRepository(
 				telefon,
 				epost,
 				er_skjermet,
+				siste_krr_sync,
 				created_at,
 				modified_at
 			) values (
@@ -192,6 +193,7 @@ class TestDataRepository(
 				:telefon,
 				:epost,
 				:erSkjermet,
+				:sisteKrrSync,
 				:createdAt,
 				:modifiedAt
 			)
@@ -205,6 +207,7 @@ class TestDataRepository(
 			"telefon" to bruker.telefon,
 			"epost" to bruker.epost,
 			"erSkjermet" to bruker.erSkjermet,
+			"sisteKrrSync" to bruker.sisteKrrSync,
 			"createdAt" to bruker.createdAt,
 			"modifiedAt" to bruker.modifiedAt
 		)

@@ -13,6 +13,7 @@ import no.nav.amt.person.service.utils.sqlParameters
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Component
@@ -57,6 +58,7 @@ class NavBrukerRepository(
 			epost = rs.getString("nav_bruker.epost"),
 			erSkjermet = rs.getBoolean("nav_bruker.er_skjermet"),
 			adresse = rs.getString("nav_bruker.adresse")?.let { fromJsonString<Adresse>(it) },
+			sisteKrrSync = rs.getTimestamp("siste_krr_sync")?.toLocalDateTime(),
 			createdAt = rs.getTimestamp("nav_bruker.created_at").toLocalDateTime(),
 			modifiedAt = rs.getTimestamp("nav_bruker.modified_at").toLocalDateTime()
 		)
@@ -89,13 +91,14 @@ class NavBrukerRepository(
 	}
 
 
-	fun	getAll(offset: Int, limit: Int): List<NavBrukerDbo> {
+	fun	getAll(offset: Int, limit: Int, notSyncedSince: LocalDateTime? = null): List<NavBrukerDbo> {
 		val sql = selectNavBrukerQuery("""
-			ORDER BY nav_bruker.modified_at asc
+			WHERE (siste_krr_sync is null OR siste_krr_sync < :notSyncedSince)
+			ORDER BY siste_krr_sync asc nulls first, nav_bruker.modified_at
 			OFFSET :offset
 			LIMIT :limit
 			""")
-		val parameters = sqlParameters("offset" to offset, "limit" to limit)
+		val parameters = sqlParameters("offset" to offset, "limit" to limit, "notSyncedSince" to notSyncedSince)
 
 		return template.query(sql, parameters, rowMapper)
 	}
@@ -110,7 +113,8 @@ class NavBrukerRepository(
 				telefon,
 				epost,
 				er_skjermet,
-				adresse
+				adresse,
+				siste_krr_sync
 			) values (
 				:id,
 				:personId,
@@ -119,7 +123,8 @@ class NavBrukerRepository(
 				:telefon,
 				:epost,
 				:erSkjermet,
-				:adresse
+				:adresse,
+				:sisteKrrSync
 			) on conflict(person_id) do update set
 				nav_veileder_id = :navVeilederId,
 				nav_enhet_id = :navEnhetId,
@@ -127,6 +132,7 @@ class NavBrukerRepository(
 				epost = :epost,
 				er_skjermet = :erSkjermet,
 				adresse = :adresse,
+				siste_krr_sync = :sisteKrrSync,
 				modified_at = current_timestamp
 				where nav_bruker.id = :id
 		""".trimIndent()
@@ -139,7 +145,8 @@ class NavBrukerRepository(
 			"telefon" to bruker.telefon,
 			"epost" to bruker.epost,
 			"erSkjermet" to bruker.erSkjermet,
-			"adresse" to bruker.adresse?.toPGObject()
+			"adresse" to bruker.adresse?.toPGObject(),
+			"sisteKrrSync" to bruker.sisteKrrSync
 		)
 
 		template.update(sql, parameters)
@@ -156,6 +163,7 @@ class NavBrukerRepository(
 				   nav_bruker.epost as "nav_bruker.epost",
 				   nav_bruker.er_skjermet as "nav_bruker.er_skjermet",
 				   nav_bruker.adresse as "nav_bruker.adresse",
+				   nav_bruker.siste_krr_sync,
 				   nav_bruker.created_at as "nav_bruker.created_at",
 				   nav_bruker.modified_at as "nav_bruker.modified_at",
 				   person.personident as "person.personident",
