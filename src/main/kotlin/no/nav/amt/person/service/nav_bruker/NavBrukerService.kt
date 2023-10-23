@@ -3,6 +3,7 @@ package no.nav.amt.person.service.nav_bruker
 import no.nav.amt.person.service.clients.krr.Kontaktinformasjon
 import no.nav.amt.person.service.clients.krr.KrrProxyClient
 import no.nav.amt.person.service.clients.pdl.PdlClient
+import no.nav.amt.person.service.clients.pdl.PdlPerson
 import no.nav.amt.person.service.config.SecureLog.secureLog
 import no.nav.amt.person.service.kafka.producer.KafkaProducerService
 import no.nav.amt.person.service.nav_ansatt.NavAnsatt
@@ -12,6 +13,8 @@ import no.nav.amt.person.service.nav_enhet.NavEnhetService
 import no.nav.amt.person.service.person.PersonService
 import no.nav.amt.person.service.person.PersonUpdateEvent
 import no.nav.amt.person.service.person.RolleService
+import no.nav.amt.person.service.person.model.Adresse
+import no.nav.amt.person.service.person.model.AdressebeskyttelseGradering
 import no.nav.amt.person.service.person.model.Person
 import no.nav.amt.person.service.person.model.Rolle
 import no.nav.amt.person.service.person.model.erBeskyttet
@@ -63,10 +66,6 @@ class NavBrukerService(
 	private fun opprettNavBruker(personident: String): NavBruker {
 		val personOpplysninger = pdlClient.hentPerson(personident)
 
-		if (personOpplysninger.adressebeskyttelseGradering.erBeskyttet()) {
-			throw IllegalStateException("Nav bruker er adreessebeskyttet og kan ikke lagres")
-		}
-
 		val person = personService.hentEllerOpprettPerson(personident, personOpplysninger)
 		val veileder = navAnsattService.hentBrukersVeileder(personident)
 		val navEnhet = navEnhetService.hentNavEnhetForBruker(personident)
@@ -81,8 +80,9 @@ class NavBrukerService(
 			telefon = kontaktinformasjon?.telefonnummer ?:  personOpplysninger.telefonnummer,
 			epost = kontaktinformasjon?.epost,
 			erSkjermet = erSkjermet,
-			adresse = personOpplysninger.adresse,
-			sisteKrrSync = LocalDateTime.now()
+			adresse = getAdresse(personOpplysninger),
+			sisteKrrSync = LocalDateTime.now(),
+			adressebeskyttelse = personOpplysninger.getAdressebeskyttelse()
 		)
 
 		upsert(navBruker)
@@ -159,6 +159,27 @@ class NavBrukerService(
 		}
 	}
 
+	fun oppdaterAdressebeskyttelse(personident: String) {
+		val bruker = repository.get(personident)?.toModel() ?: return
+
+		val personOpplysninger = try {
+			pdlClient.hentPerson(personident)
+		} catch (e: Exception) {
+			val feilmelding = "Klarte ikke hente person fra PDL ved oppdatert adressebeskyttelse: ${e.message}"
+
+			if (EnvUtils.isDev()) log.info(feilmelding)
+			else log.error(feilmelding)
+
+			return
+		}
+
+		val oppdatertAdressebeskyttelse = personOpplysninger.getAdressebeskyttelse()
+
+		if (bruker.adressebeskyttelse == oppdatertAdressebeskyttelse) return
+
+		upsert(bruker.copy(adressebeskyttelse = oppdatertAdressebeskyttelse, adresse = getAdresse(personOpplysninger)))
+	}
+
 	fun oppdaterAdresse(personidenter: List<String>) {
 		personidenter.forEach {
 			oppdaterAdresse(it)
@@ -179,20 +200,20 @@ class NavBrukerService(
 			return
 		}
 
-		if (bruker.adresse == personOpplysninger.adresse) return
+		val oppdatertAdresse = getAdresse(personOpplysninger)
 
-		upsert(bruker.copy(adresse = personOpplysninger.adresse))
+		if (bruker.adresse == oppdatertAdresse) return
+
+		upsert(bruker.copy(adresse = oppdatertAdresse))
 	}
 
-	fun slettBrukere(personer: List<Person>) {
-		personer.forEach {
-			val bruker = repository.get(it.personident)?.toModel()
-
-			if (bruker != null) {
-				slettBruker(bruker)
-			}
+	private fun getAdresse(personopplysninger: PdlPerson): Adresse? {
+		val adressebeskyttelse = personopplysninger.getAdressebeskyttelse()
+		return if (adressebeskyttelse == null) {
+			personopplysninger.adresse
+		} else {
+			null
 		}
-
 	}
 
 	fun slettBruker(bruker: NavBruker) {

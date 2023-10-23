@@ -140,14 +140,40 @@ class NavBrukerRepositoryTest {
 		testRepository.insertNavEnhet(bruker.navEnhet!!)
 
 		repository.upsert(NavBrukerUpsert(
-			bruker.id,
-			bruker.person.id,
-			bruker.navVeileder?.id,
-			bruker.navEnhet?.id,
-			bruker.telefon,
-			bruker.epost,
-			bruker.erSkjermet,
-			bruker.adresse
+			id = bruker.id,
+			personId = bruker.person.id,
+			navVeilederId = bruker.navVeileder?.id,
+			navEnhetId = bruker.navEnhet?.id,
+			telefon = bruker.telefon,
+			epost = bruker.epost,
+			erSkjermet = bruker.erSkjermet,
+			adresse = bruker.adresse,
+			adressebeskyttelse = bruker.adressebeskyttelse
+		))
+
+		val faktiskBruker = repository.get(bruker.id)
+
+		sammenlign(faktiskBruker, bruker)
+	}
+
+	@Test
+	fun `upsert - bruker finnes ikke, har adressebeskyttelse - inserter ny bruker`() {
+		val bruker = TestData.lagNavBruker(adressebeskyttelse = Adressebeskyttelse.FORTROLIG, adresse = null)
+
+		testRepository.insertPerson(bruker.person)
+		testRepository.insertNavAnsatt(bruker.navVeileder!!)
+		testRepository.insertNavEnhet(bruker.navEnhet!!)
+
+		repository.upsert(NavBrukerUpsert(
+			id = bruker.id,
+			personId = bruker.person.id,
+			navVeilederId = bruker.navVeileder?.id,
+			navEnhetId = bruker.navEnhet?.id,
+			telefon = bruker.telefon,
+			epost = bruker.epost,
+			erSkjermet = bruker.erSkjermet,
+			adresse = bruker.adresse,
+			adressebeskyttelse = bruker.adressebeskyttelse
 		))
 
 		val faktiskBruker = repository.get(bruker.id)
@@ -189,7 +215,8 @@ class NavBrukerRepositoryTest {
 					),
 					postboksadresse = null
 				)
-			)
+			),
+			adressebeskyttelse = null
 		)
 
 		repository.upsert(upsert)
@@ -259,6 +286,7 @@ class NavBrukerRepositoryTest {
 		faktiskBruker.erSkjermet shouldBe bruker.erSkjermet
 		faktiskBruker.createdAt shouldBeCloseTo bruker.createdAt
 		faktiskBruker.modifiedAt shouldBeCloseTo bruker.modifiedAt
+		faktiskBruker.adressebeskyttelse shouldBe bruker.adressebeskyttelse
 	}
 
 }
