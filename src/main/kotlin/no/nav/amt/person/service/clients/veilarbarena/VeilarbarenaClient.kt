@@ -2,9 +2,12 @@ package no.nav.amt.person.service.clients.veilarbarena
 
 import no.nav.amt.person.service.config.SecureLog.secureLog
 import no.nav.amt.person.service.utils.JsonUtils.fromJsonString
+import no.nav.amt.person.service.utils.JsonUtils.toJsonString
 import no.nav.common.rest.client.RestClient.baseClient
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.function.Supplier
 
 class VeilarbarenaClient(
@@ -13,13 +16,17 @@ class VeilarbarenaClient(
 	private val httpClient: OkHttpClient = baseClient(),
 	private val consumerId: String = "amt-person-service",
 ) {
+	companion object {
+		private val mediaTypeJson = "application/json".toMediaType()
+	}
 
 	fun hentBrukerOppfolgingsenhetId(fnr: String): String? {
+		val personRequestJson = toJsonString(PersonRequest(fnr))
 		val request = Request.Builder()
-			.url("$baseUrl/veilarbarena/api/arena/status?fnr=$fnr")
+			.url("$baseUrl/veilarbarena/api/v2/arena/hent-status")
 			.addHeader("Authorization", "Bearer ${tokenProvider.get()}")
 			.addHeader("Nav-Consumer-Id", consumerId)
-			.get()
+			.post(personRequestJson.toRequestBody(mediaTypeJson))
 			.build()
 
 		httpClient.newCall(request).execute().use { response ->
@@ -44,4 +51,7 @@ class VeilarbarenaClient(
 		var oppfolgingsenhet: String?
 	)
 
+	private data class PersonRequest(
+		val fnr: String
+	)
 }
