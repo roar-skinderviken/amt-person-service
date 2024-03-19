@@ -25,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
+import java.util.UUID
 
 @RestController
 @RequestMapping("/internal")
@@ -105,13 +106,13 @@ class InternalController(
 	}
 
 	@Unprotected
-	@GetMapping("/nav-brukere/republiser/{dollyIdent}")
+	@GetMapping("/nav-brukere/republiser/{navBrukerId}")
 	fun republiserNavBruker(
 		servlet: HttpServletRequest,
-		@PathVariable("dollyIdent") dollyIdent: String
+		@PathVariable("navBrukerId") navBrukerId: UUID
 	) {
-		if (isDev() && isInternal(servlet)) {
-			republiserNavBruker(dollyIdent)
+		if (isInternal(servlet)) {
+			republiserNavBruker(navBrukerId)
 		} else {
 			throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
 		}
@@ -215,8 +216,8 @@ class InternalController(
 		} while (navbrukere.isNotEmpty())
 	}
 
-	private fun republiserNavBruker(personident: String) {
-		val bruker = navBrukerRepository.get(personident) ?: throw RuntimeException("Fant ikke bruker")
+	private fun republiserNavBruker(navBrukerId: UUID) {
+		val bruker = navBrukerRepository.get(navBrukerId)
 		kafkaProducerService.publiserNavBruker(bruker.toModel())
 	}
 
