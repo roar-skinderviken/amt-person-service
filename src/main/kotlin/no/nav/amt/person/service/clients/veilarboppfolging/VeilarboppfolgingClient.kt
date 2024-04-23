@@ -1,5 +1,6 @@
 package no.nav.amt.person.service.clients.veilarboppfolging
 
+import no.nav.amt.person.service.nav_bruker.Oppfolgingsperiode
 import no.nav.amt.person.service.utils.JsonUtils.fromJsonString
 import no.nav.common.rest.client.RestClient.baseClient
 import okhttp3.OkHttpClient
@@ -8,6 +9,8 @@ import java.util.function.Supplier
 import no.nav.amt.person.service.utils.JsonUtils.toJsonString
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.time.ZonedDateTime
+import java.util.UUID
 
 class VeilarboppfolgingClient(
 	private val apiUrl: String,
@@ -41,7 +44,27 @@ class VeilarboppfolgingClient(
 
 			return veilederRespons.veilederIdent
 		}
+	}
 
+	fun hentOppfolgingperioder(fnr: String) : List<Oppfolgingsperiode> {
+		val personRequestJson = toJsonString(PersonRequest(fnr))
+		val request = Request.Builder()
+			.url("$apiUrl/api/v3/oppfolging/hent-perioder")
+			.header("Accept", "application/json; charset=utf-8")
+			.header("Authorization", "Bearer ${veilarboppfolgingTokenProvider.get()}")
+			.post(personRequestJson.toRequestBody(mediaTypeJson))
+			.build()
+
+		httpClient.newCall(request).execute().use { response ->
+			if (!response.isSuccessful) {
+				throw RuntimeException("Uventet status ved hent status-kall mot veilarboppfolging ${response.code}")
+			}
+			val body = response.body?.string() ?: throw RuntimeException("Body mangler i hent status-respons fra veilarboppfolging")
+
+			val oppfolgingsperioderRespons = fromJsonString<List<OppfolgingPeriodeDTO>>(body)
+
+			return oppfolgingsperioderRespons.map { it.toOppfolgingsperiode() }
+		}
 	}
 
 	data class HentBrukersVeilederResponse (
@@ -51,4 +74,16 @@ class VeilarboppfolgingClient(
 	private data class PersonRequest(
 		val fnr: String
 	)
+
+	data class OppfolgingPeriodeDTO(
+		val uuid: UUID,
+		val startDato: ZonedDateTime,
+		val sluttDato: ZonedDateTime?
+	) {
+		fun toOppfolgingsperiode() = Oppfolgingsperiode(
+			id = uuid,
+			startdato = startDato.toLocalDateTime(),
+			sluttdato = sluttDato?.toLocalDateTime()
+		)
+	}
 }
