@@ -48,6 +48,10 @@ class NavBrukerService(
 		return repository.getAll(offset, limit, notSyncedSince).map { it.toModel() }
 	}
 
+	fun getNavBrukere(offset: Int, limit: Int, lastUpdated: LocalDateTime = LocalDateTime.now()): List<NavBruker> {
+		return repository.getAllNavBrukere(offset, limit, lastUpdated).map { it.toModel() }
+	}
+
 	fun getPersonidenter(offset: Int, limit: Int, notSyncedSince: LocalDateTime? = null): List<String> {
 		return repository.getPersonidenter(offset, limit, notSyncedSince).distinct()
 	}
@@ -145,6 +149,24 @@ class NavBrukerService(
 			} else if (bruker.innsatsgruppe != null) {
 				upsert(bruker.copy(innsatsgruppe = null))
 			}
+		}
+	}
+
+	fun oppdaterOppfolgingsperiodeOgInnsatsgruppe(navBruker:NavBruker) {
+		val oppfolgingsperioder = veilarboppfolgingClient.hentOppfolgingperioder(navBruker.person.personident)
+		val innsatsgruppe = if (harAktivOppfolgingsperiode(oppfolgingsperioder)) {
+			veilarbvedtaksstotteClient.hentInnsatsgruppe(navBruker.person.personident)
+		} else {
+			null
+		}
+		if (navBruker.innsatsgruppe != innsatsgruppe || navBruker.oppfolgingsperioder != oppfolgingsperioder) {
+			upsert(
+				navBruker.copy(
+					oppfolgingsperioder = oppfolgingsperioder,
+					innsatsgruppe = innsatsgruppe
+				)
+			)
+			log.info("Oppdatert innsatsgruppe og oppfølgingsperidoe for navbruker med id ${navBruker.id}")
 		}
 	}
 

@@ -83,7 +83,7 @@ class InternalController(
 		@RequestParam(value = "batchSize", required = false) batchSize: Int?) {
 		if (isInternal(servlet)) {
 			JobRunner.runAsync("republiser-nav-brukere") {
-				batchHandterNavBrukere(startFromOffset?:0, batchSize?:500) { kafkaProducerService.publiserNavBruker(it) }
+				batchHandterNavBrukereByKrrSync(startFromOffset?:0, batchSize?:500) { kafkaProducerService.publiserNavBruker(it) }
 			}
 		} else {
 			throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
@@ -99,6 +99,22 @@ class InternalController(
 		if (isInternal(servlet)) {
 			JobRunner.runAsync("oppdater-adr-republiser-nav-brukere") {
 				oppdaterAdresseOgRepubliserAlleNavBrukere(startOffset = offset ?: 0)
+			}
+		} else {
+			throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
+		}
+	}
+
+	@Unprotected
+	@GetMapping("/nav-brukere/oppdater-innsats-republiser")
+	fun oppdaterOppfolgingInnsatsOgRepubliserNavBrukere(
+		servlet: HttpServletRequest,
+		@RequestParam(value = "startFromOffset", required = false) startFromOffset: Int?,
+		@RequestParam(value = "batchSize", required = false) batchSize: Int?
+	) {
+		if (isInternal(servlet)) {
+			JobRunner.runAsync("oppdater-innsats-republiser-nav-brukere") {
+				batchHandterNavBrukereByLastUpdated(startFromOffset?:0, batchSize?:500) { navBrukerService.oppdaterOppfolgingsperiodeOgInnsatsgruppe(it) }
 			}
 		} else {
 			throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
@@ -181,7 +197,7 @@ class InternalController(
 		} while (ansatte.isNotEmpty())
 	}
 
-	private fun batchHandterNavBrukere(startFromOffset: Int, batchSize: Int, action: (navBruker: NavBruker) -> Unit) {
+	private fun batchHandterNavBrukereByKrrSync(startFromOffset: Int, batchSize: Int, action: (navBruker: NavBruker) -> Unit) {
 		var currentOffset = startFromOffset
 		var data: List<NavBruker>
 
@@ -190,6 +206,27 @@ class InternalController(
 
 		do {
 			data = navBrukerService.get(currentOffset, batchSize)
+			data.forEach { action(it) }
+			totalHandled += data.size
+			currentOffset += batchSize
+		} while (data.isNotEmpty())
+
+		val duration = Duration.between(start, Instant.now())
+
+		if (totalHandled > 0)
+			log.info("Handled $totalHandled nav-bruker records in ${duration.toSeconds()}.${duration.toMillisPart()} seconds.")
+
+	}
+
+	private fun batchHandterNavBrukereByLastUpdated(startFromOffset: Int, batchSize: Int, action: (navBruker: NavBruker) -> Unit) {
+		var currentOffset = startFromOffset
+		var data: List<NavBruker>
+
+		val start = Instant.now()
+		var totalHandled = 0
+
+		do {
+			data = navBrukerService.getNavBrukere(currentOffset, batchSize)
 			data.forEach { action(it) }
 			totalHandled += data.size
 			currentOffset += batchSize
