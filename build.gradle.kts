@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
 	val kotlinVersion = "2.0.0"
 
-	id("org.springframework.boot") version "3.2.5"
+	id("org.springframework.boot") version "3.3.0"
 	id("io.spring.dependency-management") version "1.1.5"
 	id("com.github.davidmc24.gradle.plugin.avro") version "1.9.1"
 	kotlin("plugin.serialization") version kotlinVersion
@@ -55,6 +55,7 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
 	implementation("com.squareup.okhttp3:okhttp:$okhttp3Version")
 	implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
 	implementation("org.postgresql:postgresql")
 
 	implementation("io.micrometer:micrometer-registry-prometheus")
