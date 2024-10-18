@@ -298,9 +298,9 @@ class InternalController(
 		do {
 			data = navBrukerService.getNavBrukereModifiedBefore(batchSize, modifiedBefore, lastId)
 			data.forEach { action(it) }
-			log.info("Handled nav-bruker batch $totalHandled records. lastId $lastId")
 			totalHandled += data.size
 			lastId = data.lastOrNull()?.id
+			log.info("Handled nav-bruker batch $totalHandled records. lastId $lastId")
 		} while (data.isNotEmpty())
 
 		val duration = Duration.between(start, Instant.now())

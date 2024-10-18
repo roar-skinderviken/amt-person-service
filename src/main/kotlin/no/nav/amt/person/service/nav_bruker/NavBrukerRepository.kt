@@ -120,9 +120,9 @@ class NavBrukerRepository(
 	}
 
 	fun	getAllNavBrukere(limit: Int, modifiedBefore: LocalDate, lastId: UUID?): List<NavBrukerDbo> {
-		val andLastId = lastId?.let { "AND id nav_bruker.id > :last_id" } ?: ""
+		val andLastId = lastId?.let { "AND nav_bruker.id > :last_id" } ?: ""
 		val sql = selectNavBrukerQuery("""
-			WHERE modified_at < :modified_before $andLastId
+			WHERE nav_bruker.modified_at < :modified_before $andLastId
 			ORDER BY nav_bruker.id
 			LIMIT :limit
 			""")
