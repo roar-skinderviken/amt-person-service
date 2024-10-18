@@ -108,15 +108,25 @@ class NavBrukerRepository(
 		return template.query(sql, parameters, rowMapper)
 	}
 
-	fun	getAllNavBrukere(offset: Int, limit: Int, modifiedBefore: LocalDate?): List<NavBrukerDbo> {
-		val where = modifiedBefore?.let { "WHERE modified_at < :modified_before" } ?: ""
+	fun	getAllNavBrukere(offset: Int, limit: Int): List<NavBrukerDbo> {
 		val sql = selectNavBrukerQuery("""
-			$where
 			ORDER BY nav_bruker.created_at
 			OFFSET :offset
 			LIMIT :limit
 			""")
-		val parameters = sqlParameters("offset" to offset, "limit" to limit, "modified_before" to modifiedBefore)
+		val parameters = sqlParameters("offset" to offset, "limit" to limit)
+
+		return template.query(sql, parameters, rowMapper)
+	}
+
+	fun	getAllNavBrukere(limit: Int, modifiedBefore: LocalDate, lastId: UUID?): List<NavBrukerDbo> {
+		val andLastId = lastId?.let { "AND id nav_bruker.id > :last_id" } ?: ""
+		val sql = selectNavBrukerQuery("""
+			WHERE modified_at < :modified_before $andLastId
+			ORDER BY nav_bruker.id
+			LIMIT :limit
+			""")
+		val parameters = sqlParameters("modified_before" to modifiedBefore, "limit" to limit, "last_id" to lastId)
 
 		return template.query(sql, parameters, rowMapper)
 	}
