@@ -33,10 +33,10 @@ val lang3Version = "3.17.0"
 val shedlockVersion = "5.16.0"
 val confluentVersion = "7.5.1"
 val avroVersion = "1.12.0"
-val jacksonVersion = "2.18.0"
+val jacksonVersion = "2.18.1"
 val mockOauth2ServerVersion = "2.1.9"
 
-extra["jackson-bom.version"] = "2.18.0"
+extra["jackson-bom.version"] = "2.18.1"
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter")
