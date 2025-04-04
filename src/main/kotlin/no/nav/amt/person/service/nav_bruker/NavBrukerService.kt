@@ -1,5 +1,6 @@
 package no.nav.amt.person.service.nav_bruker
 
+import no.nav.amt.person.service.api.dto.NavBrukerFodselsdatoDto
 import no.nav.amt.person.service.clients.krr.Kontaktinformasjon
 import no.nav.amt.person.service.clients.krr.KrrProxyClient
 import no.nav.amt.person.service.clients.pdl.PdlClient
@@ -76,6 +77,11 @@ class NavBrukerService(
 		} ?: opprettNavBruker(personident)
 
 		return navBruker
+	}
+
+	fun hentNavBrukerFodselsar(personident: String): NavBrukerFodselsdatoDto {
+		val fodselsar = pdlClient.hentPersonFodselsar(personident)
+		return NavBrukerFodselsdatoDto(fodselsar)
 	}
 
 	private fun opprettNavBruker(personident: String): NavBruker {
