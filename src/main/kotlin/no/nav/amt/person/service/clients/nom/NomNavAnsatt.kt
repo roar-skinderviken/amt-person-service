@@ -13,6 +13,5 @@ data class NomNavAnsatt(
 		orgTilknytning
 			.filter { it.erDagligOppfolging && it.gyldigFom <= LocalDate.now() }
 			.maxBy { it.gyldigFom }
-			.orgEnhet.remedyEnhetId ?: throw IllegalStateException("Nav enhet for ansatt mangler remedyEnhetId")
-
+			.orgEnhet.remedyEnhetId ?: throw IllegalStateException("Nav enhet for ansatt $navIdent mangler remedyEnhetId")
 }
