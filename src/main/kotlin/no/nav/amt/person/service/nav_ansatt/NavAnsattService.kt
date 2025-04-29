@@ -54,8 +54,7 @@ class NavAnsattService(
 
 		log.info("Oppretter ny nav ansatt for nav ident $navIdent")
 
-		val navEnhet = navEnhetService.hentEllerOpprettNavEnhet(nyNavAnsatt.navEnhetNummer)
-			?: throw IllegalStateException("Fant ikke enhet med enhetsnummer ${nyNavAnsatt.navEnhetNummer}")
+		val navEnhet = nyNavAnsatt.navEnhetNummer?.let {  navEnhetService.hentEllerOpprettNavEnhet(it) }
 
 		val ansatt = NavAnsatt(
 			id = UUID.randomUUID(),
@@ -63,7 +62,7 @@ class NavAnsattService(
 			navn = nyNavAnsatt.navn,
 			epost = nyNavAnsatt.epost,
 			telefon = nyNavAnsatt.telefonnummer,
-			navEnhetId = navEnhet.id,
+			navEnhetId = navEnhet?.id,
 		)
 
 		return upsert(ansatt)

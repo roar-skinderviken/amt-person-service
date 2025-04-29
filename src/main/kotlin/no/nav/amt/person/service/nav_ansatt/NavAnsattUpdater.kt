@@ -42,8 +42,7 @@ class NavAnsattUpdater(
 		nomAnsatt: NomNavAnsatt,
 	): NavAnsatt? {
 		ansatt.erSjekket = true
-		val navEnhet = navEnhetService.hentEllerOpprettNavEnhet(nomAnsatt.navEnhetNummer)
-			?: throw IllegalStateException("Fant ikke nav enhet med enhetsnummer ${nomAnsatt.navEnhetNummer}")
+		val navEnhet = nomAnsatt.navEnhetNummer?.let {  navEnhetService.hentEllerOpprettNavEnhet(it) }
 
 		return if (ansatt.lagretAnsatt.skalOppdateres(nomAnsatt, navEnhet)) {
 			NavAnsatt(
@@ -52,7 +51,7 @@ class NavAnsattUpdater(
 				navn = nomAnsatt.navn,
 				epost = nomAnsatt.epost,
 				telefon = nomAnsatt.telefonnummer,
-				navEnhetId = navEnhet.id
+				navEnhetId = navEnhet?.id
 			)
 		} else {
 			null
@@ -67,10 +66,10 @@ class NavAnsattUpdater(
 
 private fun NavAnsatt.skalOppdateres(
 	nomNavAnsatt: NomNavAnsatt,
-	navEnhet: NavEnhet
+	navEnhet: NavEnhet?
 ): Boolean {
 	return this.navn != nomNavAnsatt.navn ||
 		this.epost != nomNavAnsatt.epost ||
 		this.telefon != nomNavAnsatt.telefonnummer ||
-		this.navEnhetId != navEnhet.id
+		this.navEnhetId != navEnhet?.id
 }

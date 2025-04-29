@@ -9,9 +9,9 @@ data class NomNavAnsatt(
 	val epost: String?,
 	private val orgTilknytning: List<NomQueries.HentRessurser.OrgTilknytning>,
 ) {
-	val navEnhetNummer: String get() =
+	val navEnhetNummer: String? get() =
 		orgTilknytning
 			.filter { it.erDagligOppfolging && it.gyldigFom <= LocalDate.now() }
 			.maxBy { it.gyldigFom }
-			.orgEnhet.remedyEnhetId ?: throw IllegalStateException("Nav enhet for ansatt $navIdent mangler remedyEnhetId")
+			.orgEnhet.remedyEnhetId
 }
