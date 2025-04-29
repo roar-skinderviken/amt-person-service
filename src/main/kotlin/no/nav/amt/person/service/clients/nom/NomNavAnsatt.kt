@@ -12,6 +12,6 @@ data class NomNavAnsatt(
 	val navEnhetNummer: String? get() =
 		orgTilknytning
 			.filter { it.erDagligOppfolging && it.gyldigFom <= LocalDate.now() }
-			.maxBy { it.gyldigFom }
-			.orgEnhet.remedyEnhetId
+			.maxByOrNull { it.gyldigFom }
+			?.orgEnhet?.remedyEnhetId
 }
