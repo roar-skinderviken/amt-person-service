@@ -9,6 +9,7 @@ data class NavAnsattDto(
 	val navn: String,
 	val epost: String?,
 	val telefon: String?,
+	val navEnhetId: UUID?,
 )
 
-fun NavAnsatt.toDto() = NavAnsattDto(id, navIdent, navn, epost, telefon)
+fun NavAnsatt.toDto() = NavAnsattDto(id, navIdent, navn, epost, telefon, navEnhetId)
