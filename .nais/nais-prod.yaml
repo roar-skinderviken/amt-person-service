@@ -38,8 +38,6 @@ spec:
   azure:
     application:
       enabled: true
-  secureLogs:
-    enabled: true
   kafka:
     pool: nav-prod
   accessPolicy:
@@ -62,6 +60,8 @@ spec:
         - application: veilarboppfolging
           namespace: poao
           cluster: prod-gcp
+        - application: logging
+          namespace: nais-system
       external:
         - host: pdl-api.prod-fss-pub.nais.io
         - host: digdir-krr-proxy.intern.nav.no
