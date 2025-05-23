@@ -259,10 +259,10 @@ class InternalController(
 				do {
 					personidenter = navBrukerService.getPersonidenterMedManglendeKontaktinfo(offset, limit)
 					if (personidenter.isNotEmpty()) {
-						println("Processing $jobName batch #$batchNumber: offset=$offset, count=${personidenter.size}")
+						log.info("Processing $jobName batch #$batchNumber: offset=$offset, count=${personidenter.size}")
 						navBrukerService.syncKontaktinfoBulk(personidenter)
 					} else {
-						println("No more data at offset=$offset. Done.")
+						log.info("No more data at offset=$offset. Done.")
 					}
 					offset += limit
 					batchNumber++
