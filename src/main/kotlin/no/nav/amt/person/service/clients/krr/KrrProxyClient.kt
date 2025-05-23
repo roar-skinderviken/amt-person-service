@@ -55,7 +55,7 @@ class KrrProxyClient(
 				return Result.failure(RuntimeException("Respons fra KRR inneholdt feil på ${responseDto.feil.size} av ${personidenter.size} personer"))
 			}
 			return Result.success(
-				KontaktinformasjonForPersoner(responseDto.personer.mapValues { (_, v) -> Kontaktinformasjon(v.mobiltelefonnummer, v.epostadresse) })
+				KontaktinformasjonForPersoner(responseDto.personer.mapValues { (_, v) -> Kontaktinformasjon(v.epostadresse, v.mobiltelefonnummer) })
 			)
 		}
 	}
