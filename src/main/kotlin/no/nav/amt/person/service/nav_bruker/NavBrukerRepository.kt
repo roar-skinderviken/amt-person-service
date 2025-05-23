@@ -152,6 +152,20 @@ class NavBrukerRepository(
 		return template.query(sql, parameters) { rs, _ -> rs.getString("person.personident") }
 	}
 
+	fun	getPersonidenterMedManglendeKontaktinfo(offset: Int, limit: Int): List<String> {
+		val sql = """
+			SELECT person.personident AS "person.personident"
+			FROM nav_bruker
+					 INNER JOIN person ON nav_bruker.person_id = person.id
+			where nav_bruker.telefon is null or nav_bruker.epost is null
+			OFFSET :offset
+			LIMIT :limit
+			"""
+		val parameters = sqlParameters("offset" to offset, "limit" to limit)
+
+		return template.query(sql, parameters) { rs, _ -> rs.getString("person.personident") }
+	}
+
 	fun upsert(bruker: NavBrukerUpsert) {
 		val sql = """
 			insert into nav_bruker(

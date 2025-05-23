@@ -242,6 +242,25 @@ class InternalController(
 	}
 
 	@Unprotected
+	@GetMapping("/nav-brukere/oppdater-manglende-kontaktinfo")
+	fun oppdaterManglendeKontakinfo(
+		servlet: HttpServletRequest,
+		@RequestParam(value = "startFromOffset", required = false) startFromOffset: Int?,
+		@RequestParam(value = "batchSize", required = false) batchSize: Int?
+	) {
+		if (isInternal(servlet)) {
+			JobRunner.runAsync("oppdater-manglende-kontaktinfo") {
+				val offset = startFromOffset?:0
+				val limit = batchSize?:5000
+				val personidenter = navBrukerService.getPersonidenterMedManglendeKontaktinfo(offset, limit)
+				navBrukerService.syncKontaktinfoBulk(personidenter)
+			}
+		} else {
+			throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
+		}
+	}
+
+	@Unprotected
 	@PostMapping("/nav-brukere/synkroniser-krr")
 	fun synkroniserKrrForPerson(
 		servlet: HttpServletRequest,
