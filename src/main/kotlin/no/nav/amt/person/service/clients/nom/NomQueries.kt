@@ -22,6 +22,7 @@ object NomQueries {
 							nummer
 							type
 						}
+						primaryTelefon
 					    orgTilknytning {
 					  		gyldigFom
 					  		gyldigTom
