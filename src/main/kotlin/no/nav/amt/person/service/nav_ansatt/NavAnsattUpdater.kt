@@ -17,15 +17,22 @@ class NavAnsattUpdater(
 	private val log = LoggerFactory.getLogger(javaClass)
 
 	fun oppdaterAlle(batchSize: Int = 100) {
-		val ansattBatcher = navAnsattService.getAll().chunked(batchSize)
+		val ansattBatcher = navAnsattService.getAll()
+			.also { log.info("Oppdaterer ${it.size} nav-ansatte") }
+			.chunked(batchSize)
+		var batchNumber = 1
+
 
 		ansattBatcher.forEach { batch ->
+			log.info("Prosesserer batch ${batchNumber++}")
 			val ansatte = batch.associate { it.navIdent to AnsattSomSkalOppdateres(it, false) }
 			val nomResultat = nomClient.hentNavAnsatte(ansatte.keys.toList())
 
 			val oppdaterteAnsatte = nomResultat.mapNotNull { nomAnsatt ->
 				ansatte[nomAnsatt.navIdent]?.let { finnOppdatering(it, nomAnsatt) }
 			}
+
+			log.info("Oppdaterer informasjon om ${oppdaterteAnsatte.size} nav-ansatte, sjekket ${nomResultat.size} ansatte")
 
 			navAnsattService.upsertMany(oppdaterteAnsatte)
 
