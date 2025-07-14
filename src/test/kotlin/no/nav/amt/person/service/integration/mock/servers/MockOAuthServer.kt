@@ -5,12 +5,10 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 
 open class MockOAuthServer {
-
-	private val azureAdIssuer = "azuread"
-
 	private val log = LoggerFactory.getLogger(javaClass)
 
 	companion object {
+		private const val AZURE_AD_ISSUER = "azuread"
 		private val server = MockOAuth2Server()
 	}
 
@@ -22,18 +20,14 @@ open class MockOAuthServer {
 		}
 	}
 
-	fun getDiscoveryUrl(issuer: String = azureAdIssuer): String {
-		return server.wellKnownUrl(issuer).toString()
-	}
+	fun getDiscoveryUrl(issuer: String = AZURE_AD_ISSUER): String = server.wellKnownUrl(issuer).toString()
 
 	fun issueToken(
 		issuer: String,
 		subject: String = UUID.randomUUID().toString(),
 		audience: String = "test-aud",
 		claims: Map<String, Any> = emptyMap()
-	): String {
-		return server.issueToken(issuer, subject, audience, claims).serialize()
-	}
+	): String = server.issueToken(issuer, subject, audience, claims).serialize()
 
 	fun issueAzureAdM2MToken(
 		subject: String = UUID.randomUUID().toString(),
@@ -44,6 +38,6 @@ open class MockOAuthServer {
 		claims["roles"] = arrayOf("access_as_application")
 		claims["oid"] = subject
 
-		return server.issueToken(azureAdIssuer, subject, audience, claims).serialize()
+		return server.issueToken(AZURE_AD_ISSUER, subject, audience, claims).serialize()
 	}
 }

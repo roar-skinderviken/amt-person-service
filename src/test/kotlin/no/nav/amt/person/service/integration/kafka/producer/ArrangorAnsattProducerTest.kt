@@ -84,16 +84,13 @@ class ArrangorAnsattProducerTest(
 			?.firstOrNull { it.key() == person.id.toString() } shouldNotBe null
 	}
 
-	private fun ansattTilV1Json(ansatt: Person): String {
-		return toJsonString(
-			ArrangorAnsattDtoV1(
-				id = ansatt.id,
-				personident = ansatt.personident,
-				fornavn = ansatt.fornavn,
-				mellomnavn = ansatt.mellomnavn,
-				etternavn = ansatt.etternavn
-			)
+	private fun ansattTilV1Json(ansatt: Person): String = toJsonString(
+		ArrangorAnsattDtoV1(
+			id = ansatt.id,
+			personident = ansatt.personident,
+			fornavn = ansatt.fornavn,
+			mellomnavn = ansatt.mellomnavn,
+			etternavn = ansatt.etternavn
 		)
-	}
+	)
 }
-

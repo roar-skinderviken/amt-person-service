@@ -20,23 +20,19 @@ object SingletonKafkaProvider {
 		val host = getHost()
 
 		val properties = object : KafkaProperties {
-			override fun consumer(): Properties {
-				return KafkaPropertiesBuilder.consumerBuilder()
-					.withBrokerUrl(host)
-					.withBaseProperties()
-					.withConsumerGroupId(CONSUMER_ID)
-					.withDeserializers(ByteArrayDeserializer::class.java, ByteArrayDeserializer::class.java)
-					.build()
-			}
+			override fun consumer(): Properties = KafkaPropertiesBuilder.consumerBuilder()
+				.withBrokerUrl(host)
+				.withBaseProperties()
+				.withConsumerGroupId(CONSUMER_ID)
+				.withDeserializers(ByteArrayDeserializer::class.java, ByteArrayDeserializer::class.java)
+				.build()
 
-			override fun producer(): Properties {
-				return KafkaPropertiesBuilder.producerBuilder()
-					.withBrokerUrl(host)
-					.withBaseProperties()
-					.withProducerId(PRODUCER_ID)
-					.withSerializers(StringSerializer::class.java, StringSerializer::class.java)
-					.build()
-			}
+			override fun producer(): Properties = KafkaPropertiesBuilder.producerBuilder()
+				.withBrokerUrl(host)
+				.withBaseProperties()
+				.withProducerId(PRODUCER_ID)
+				.withSerializers(StringSerializer::class.java, StringSerializer::class.java)
+				.build()
 		}
 
 		return properties
@@ -57,10 +53,8 @@ object SingletonKafkaProvider {
 		return kafkaContainer?.bootstrapServers ?: error("Kafka container must not be null.")
 	}
 
-	private fun setupShutdownHook() {
-		Runtime.getRuntime().addShutdownHook(Thread {
-			log.info("Shutting down Kafka server...")
-			kafkaContainer?.stop()
-		})
-	}
+	private fun setupShutdownHook() = Runtime.getRuntime().addShutdownHook(Thread {
+		log.info("Shutting down Kafka server...")
+		kafkaContainer?.stop()
+	})
 }

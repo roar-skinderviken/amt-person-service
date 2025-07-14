@@ -74,16 +74,14 @@ class NavAnsattProducerTest(
 		records.any { it.key() == uendretAnsatt.id.toString() } shouldBe false
 	}
 
-	private fun ansattTilV1Json(ansatt: NavAnsatt): String {
-		return toJsonString(
-			NavAnsattDtoV1(
-				id = ansatt.id,
-				navident = ansatt.navIdent,
-				navn = ansatt.navn,
-				telefon = ansatt.telefon,
-				epost = ansatt.epost,
-				navEnhetId = ansatt.navEnhetId,
-			)
+	private fun ansattTilV1Json(ansatt: NavAnsatt): String = toJsonString(
+		NavAnsattDtoV1(
+			id = ansatt.id,
+			navident = ansatt.navIdent,
+			navn = ansatt.navn,
+			telefon = ansatt.telefon,
+			epost = ansatt.epost,
+			navEnhetId = ansatt.navEnhetId,
 		)
-	}
+	)
 }
