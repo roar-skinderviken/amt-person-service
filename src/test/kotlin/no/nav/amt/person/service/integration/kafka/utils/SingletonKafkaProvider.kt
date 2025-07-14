@@ -10,9 +10,8 @@ import org.testcontainers.utility.DockerImageName
 import java.util.Properties
 
 object SingletonKafkaProvider {
-
-	private const val producerId = "INTEGRATION_PRODUCER"
-	private const val consumerId = "INTEGRATION_CONSUMER"
+	private const val PRODUCER_ID = "INTEGRATION_PRODUCER"
+	private const val CONSUMER_ID = "INTEGRATION_CONSUMER"
 
 	private val log = LoggerFactory.getLogger(javaClass)
 	private var kafkaContainer: KafkaContainer? = null
@@ -25,7 +24,7 @@ object SingletonKafkaProvider {
 				return KafkaPropertiesBuilder.consumerBuilder()
 					.withBrokerUrl(host)
 					.withBaseProperties()
-					.withConsumerGroupId(consumerId)
+					.withConsumerGroupId(CONSUMER_ID)
 					.withDeserializers(ByteArrayDeserializer::class.java, ByteArrayDeserializer::class.java)
 					.build()
 			}
@@ -34,7 +33,7 @@ object SingletonKafkaProvider {
 				return KafkaPropertiesBuilder.producerBuilder()
 					.withBrokerUrl(host)
 					.withBaseProperties()
-					.withProducerId(producerId)
+					.withProducerId(PRODUCER_ID)
 					.withSerializers(StringSerializer::class.java, StringSerializer::class.java)
 					.build()
 			}

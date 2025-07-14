@@ -3,12 +3,12 @@ package no.nav.amt.person.service.clients.pdl
 import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.json.shouldEqualJson
 import io.kotest.matchers.shouldBe
-import no.nav.amt.person.service.clients.pdl.PdlClientTestData.errorPrefix
+import no.nav.amt.person.service.clients.pdl.PdlClientTestData.ERROR_PREFIX
+import no.nav.amt.person.service.clients.pdl.PdlClientTestData.NULL_ERROR
 import no.nav.amt.person.service.clients.pdl.PdlClientTestData.flereFeilRespons
 import no.nav.amt.person.service.clients.pdl.PdlClientTestData.fodselsarRespons
 import no.nav.amt.person.service.clients.pdl.PdlClientTestData.gyldigRespons
 import no.nav.amt.person.service.clients.pdl.PdlClientTestData.minimalFeilRespons
-import no.nav.amt.person.service.clients.pdl.PdlClientTestData.nullError
 import no.nav.amt.person.service.clients.pdl.PdlClientTestData.telefonResponse
 import no.nav.amt.person.service.data.TestData
 import no.nav.amt.person.service.integration.IntegrationTestBase
@@ -126,7 +126,7 @@ class PdlClientTest(
 			client.hentPerson("FNR")
 		}
 
-		exception.message shouldBe "$errorPrefix$nullError- Noe gikk galt (code: null details: null)\n"
+		exception.message shouldBe "$ERROR_PREFIX$NULL_ERROR- Noe gikk galt (code: null details: null)\n"
 
 		val request = server.takeRequest()
 
@@ -208,7 +208,7 @@ class PdlClientTest(
 			client.hentPerson("FNR")
 		}
 
-		exception.message shouldBe errorPrefix + nullError +
+		exception.message shouldBe ERROR_PREFIX + NULL_ERROR +
 			"- Ikke tilgang til å se person (code: unauthorized details: PdlErrorDetails(type=abac-deny, cause=cause-0001-manglerrolle, policy=adressebeskyttelse_strengt_fortrolig_adresse))\n"
 	}
 
@@ -226,7 +226,7 @@ class PdlClientTest(
 			client.hentPerson("FNR")
 		}
 
-		exception.message shouldBe errorPrefix + nullError +
+		exception.message shouldBe ERROR_PREFIX + NULL_ERROR +
 			"- Ikke tilgang til å se person (code: unauthorized details: PdlErrorDetails(type=abac-deny, cause=cause-0001-manglerrolle, policy=adressebeskyttelse_strengt_fortrolig_adresse))\n" +
 			"- Test (code: unauthorized details: PdlErrorDetails(type=abac-deny, cause=cause-0001-manglerrolle, policy=adressebeskyttelse_strengt_fortrolig_adresse))\n"
 	}
@@ -284,7 +284,7 @@ class PdlClientTest(
 			client.hentPersonFodselsar("FNR")
 		}
 
-		exception.message shouldBe "$errorPrefix$nullError- Noe gikk galt (code: null details: null)\n"
+		exception.message shouldBe "$ERROR_PREFIX$NULL_ERROR- Noe gikk galt (code: null details: null)\n"
 
 		val request = server.takeRequest()
 
