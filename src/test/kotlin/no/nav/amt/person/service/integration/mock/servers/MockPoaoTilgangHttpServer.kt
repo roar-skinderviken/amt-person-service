@@ -24,5 +24,4 @@ class MockPoaoTilgangHttpServer : MockHttpServer(name = "MockPoaoTilgangHttpServ
 
 		addResponseHandler(predicate, response)
 	}
-
 }

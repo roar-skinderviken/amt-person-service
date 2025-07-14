@@ -1,6 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
-
 plugins {
 	val kotlinVersion = "2.2.0"
 
@@ -49,8 +46,6 @@ dependencies {
 	implementation("org.springframework.retry:spring-retry")
 	implementation("org.springframework:spring-aspects")
 
-	implementation("org.jetbrains.kotlin:kotlin-reflect")
-	implementation("org.jetbrains.kotlin:kotlin-stdlib")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
 	implementation("com.squareup.okhttp3:okhttp:$okhttp3Version")
 	implementation("org.flywaydb:flyway-core")
@@ -84,24 +79,30 @@ dependencies {
 	testImplementation("io.kotest:kotest-assertions-core-jvm:$kotestVersion")
 	testImplementation("io.kotest:kotest-assertions-json-jvm:$kotestVersion")
 	testImplementation("com.squareup.okhttp3:mockwebserver:$okhttp3Version")
-	testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
+
 	testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
 	testImplementation("org.testcontainers:kafka:$testcontainersVersion")
-	testImplementation("io.mockk:mockk:$mockkVersion")
-	testImplementation("no.nav.security:mock-oauth2-server:$mockOauth2ServerVersion")}
-
-tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
-	this.archiveFileName.set("${archiveBaseName.get()}.${archiveExtension.get()}")
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
+	testImplementation("io.mockk:mockk-jvm:$mockkVersion")
+	testImplementation("no.nav.security:mock-oauth2-server:$mockOauth2ServerVersion")
 }
 
 kotlin {
+	jvmToolchain(21)
 	compilerOptions {
 		freeCompilerArgs.add("-Xjsr305=strict")
 		freeCompilerArgs.add("-Xannotation-default-target=param-property")
-		jvmTarget = JvmTarget.JVM_21
 	}
 }
 
-tasks.withType<Test> {
+tasks.jar {
+	enabled = false
+}
+
+tasks.test {
 	useJUnitPlatform()
+	jvmArgs(
+		"-Xshare:off",
+		"-XX:+EnableDynamicAgentLoading"
+	)
 }

@@ -7,7 +7,7 @@ import okhttp3.mockwebserver.RecordedRequest
 class MockMachineToMachineHttpServer : MockHttpServer(name = "MockMachineToMachineHttpServer") {
 
 	companion object {
-		const val tokenPath = "/token"
+		const val TOKEN_PATH = "/token"
 	}
 
 	init {
@@ -16,7 +16,7 @@ class MockMachineToMachineHttpServer : MockHttpServer(name = "MockMachineToMachi
 
 	private fun mockToken() {
 		val predicate = { req: RecordedRequest ->
-			req.path == tokenPath
+			req.path == TOKEN_PATH
 		}
 
 		val body = """

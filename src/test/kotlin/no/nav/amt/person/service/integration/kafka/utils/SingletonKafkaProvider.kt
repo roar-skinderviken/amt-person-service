@@ -7,7 +7,7 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
 import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
-import java.util.*
+import java.util.Properties
 
 object SingletonKafkaProvider {
 
@@ -55,7 +55,7 @@ object SingletonKafkaProvider {
 				}
 			setupShutdownHook()
 		}
-		return kafkaContainer!!.bootstrapServers
+		return kafkaContainer?.bootstrapServers ?: error("Kafka container must not be null.")
 	}
 
 	private fun setupShutdownHook() {

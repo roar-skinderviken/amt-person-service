@@ -1,5 +1,6 @@
 package no.nav.amt.person.service.integration.kafka.producer
 
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import no.nav.amt.person.service.data.TestData
 import no.nav.amt.person.service.integration.IntegrationTestBase
@@ -12,21 +13,13 @@ import no.nav.amt.person.service.nav_ansatt.NavAnsattService
 import no.nav.amt.person.service.nav_ansatt.NavAnsattUpdater
 import no.nav.amt.person.service.utils.JsonUtils.toJsonString
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 
-class NavAnsattProducerTest: IntegrationTestBase() {
-
-	@Autowired
-	lateinit var kafkaProducerService: KafkaProducerService
-
-	@Autowired
-	lateinit var kafkaTopicProperties: KafkaTopicProperties
-
-	@Autowired
-	lateinit var navAnsattService: NavAnsattService
-
-	@Autowired
-	lateinit var navAnsattUpdater: NavAnsattUpdater
+class NavAnsattProducerTest(
+	private val kafkaProducerService: KafkaProducerService,
+	private val kafkaTopicProperties: KafkaTopicProperties,
+	private val navAnsattService: NavAnsattService,
+	private val navAnsattUpdater: NavAnsattUpdater
+) : IntegrationTestBase() {
 
 	@Test
 	fun `publiserNavAnsatt - skal publisere ansatt med riktig key og value`() {
@@ -34,14 +27,14 @@ class NavAnsattProducerTest: IntegrationTestBase() {
 
 		kafkaProducerService.publiserNavAnsatt(ansatt)
 
-		val record = consume(kafkaTopicProperties.amtNavAnsattPersonaliaTopic)!!
-			.first { it.key() == ansatt.id.toString() }
+		val record = consume(kafkaTopicProperties.amtNavAnsattPersonaliaTopic)
+			?.first { it.key() == ansatt.id.toString() }
 
 		val forventetValue = ansattTilV1Json(ansatt)
 
+		record.shouldNotBeNull()
 		record.key() shouldBe ansatt.id.toString()
 		record.value() shouldBe forventetValue
-
 	}
 
 	@Test
@@ -52,11 +45,12 @@ class NavAnsattProducerTest: IntegrationTestBase() {
 		val oppdatertAnsatt = ansatt.copy(navn = "nytt navn", telefon = "nytt nummer", epost = "ny@epost.no").toModel()
 		navAnsattService.upsert(oppdatertAnsatt)
 
-		val record = consume(kafkaTopicProperties.amtNavAnsattPersonaliaTopic)!!
-			.first { it.key() == ansatt.id.toString() }
+		val record = consume(kafkaTopicProperties.amtNavAnsattPersonaliaTopic)
+			?.first { it.key() == ansatt.id.toString() }
 
 		val forventetValue = ansattTilV1Json(oppdatertAnsatt)
 
+		record.shouldNotBeNull()
 		record.key() shouldBe ansatt.id.toString()
 		record.value() shouldBe forventetValue
 	}
@@ -73,8 +67,9 @@ class NavAnsattProducerTest: IntegrationTestBase() {
 
 		navAnsattUpdater.oppdaterAlle()
 
-		val records = consume(kafkaTopicProperties.amtNavAnsattPersonaliaTopic)!!
+		val records = consume(kafkaTopicProperties.amtNavAnsattPersonaliaTopic)
 
+		records.shouldNotBeNull()
 		records.any { it.key() == endretAnsatt.id.toString() } shouldBe true
 		records.any { it.key() == uendretAnsatt.id.toString() } shouldBe false
 	}
@@ -91,5 +86,4 @@ class NavAnsattProducerTest: IntegrationTestBase() {
 			)
 		)
 	}
-
 }

@@ -17,7 +17,7 @@ open class MockOAuthServer {
 	fun start() {
 		try {
 			server.start()
-		} catch (e: IllegalArgumentException) {
+		} catch (_: IllegalArgumentException) {
 			log.info("${javaClass.simpleName} is already started")
 		}
 	}
@@ -46,5 +46,4 @@ open class MockOAuthServer {
 
 		return server.issueToken(azureAdIssuer, subject, audience, claims).serialize()
 	}
-
 }

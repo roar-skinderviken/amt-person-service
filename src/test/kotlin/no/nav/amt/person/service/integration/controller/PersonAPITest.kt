@@ -1,6 +1,8 @@
 package no.nav.amt.person.service.integration.controller
 
 import com.fasterxml.jackson.module.kotlin.readValue
+import io.kotest.assertions.assertSoftly
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import no.nav.amt.person.service.api.dto.AdressebeskyttelseDto
 import no.nav.amt.person.service.api.dto.ArrangorAnsattDto
@@ -21,22 +23,14 @@ import no.nav.amt.person.service.person.model.IdentType
 import no.nav.amt.person.service.utils.JsonUtils.objectMapper
 import okhttp3.Request
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import java.util.UUID
 
-class PersonAPITest: IntegrationTestBase() {
-
-	@Autowired
-	lateinit var personService: PersonService
-
-	@Autowired
-	lateinit var navBrukerService: NavBrukerService
-
-	@Autowired
-	lateinit var navAnsattService: NavAnsattService
-
-	@Autowired
-	lateinit var navEnhetService: NavEnhetService
+class PersonAPITest(
+	private val personService: PersonService,
+	private val navBrukerService: NavBrukerService,
+	private val navAnsattService: NavAnsattService,
+	private val navEnhetService: NavEnhetService,
+) : IntegrationTestBase() {
 
 	@Test
 	fun `hentEllerOpprettArrangorAnsatt - ansatt finnes ikke - skal ha status 200 og returnere riktig response`() {
@@ -54,14 +48,16 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		val body = objectMapper.readValue<ArrangorAnsattDto>(response.body!!.string())
-		val faktiskPerson = personService.hentPerson(person.personident)!!
+		val body = objectMapper.readValue<ArrangorAnsattDto>(response.body.string())
+		val faktiskPerson = personService.hentPerson(person.personident)
 
-		faktiskPerson.id shouldBe body.id
-		faktiskPerson.personident shouldBe body.personident
-		faktiskPerson.fornavn shouldBe body.fornavn
-		faktiskPerson.mellomnavn shouldBe body.mellomnavn
-		faktiskPerson.etternavn shouldBe body.etternavn
+		assertSoftly(faktiskPerson.shouldNotBeNull()) {
+			id shouldBe body.id
+			personident shouldBe body.personident
+			fornavn shouldBe body.fornavn
+			mellomnavn shouldBe body.mellomnavn
+			etternavn shouldBe body.etternavn
+		}
 	}
 
 	@Test
@@ -81,16 +77,17 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		val body = objectMapper.readValue<ArrangorAnsattDto>(response.body!!.string())
-		val faktiskPerson = personService.hentPerson(person.personident)!!
+		val body = objectMapper.readValue<ArrangorAnsattDto>(response.body.string())
+		val faktiskPerson = personService.hentPerson(person.personident)
 
-		faktiskPerson.id shouldBe body.id
-		faktiskPerson.personident shouldBe body.personident
-		faktiskPerson.fornavn shouldBe body.fornavn
-		faktiskPerson.mellomnavn shouldBe body.mellomnavn
-		faktiskPerson.etternavn shouldBe body.etternavn
+		assertSoftly(faktiskPerson.shouldNotBeNull()) {
+			id shouldBe body.id
+			personident shouldBe body.personident
+			fornavn shouldBe body.fornavn
+			mellomnavn shouldBe body.mellomnavn
+			etternavn shouldBe body.etternavn
+		}
 	}
-
 
 	@Test
 	fun `hentEllerOpprettNavBruker - nav bruker finnes ikke - skal ha status 200 og returnere riktig response`() {
@@ -100,10 +97,22 @@ class PersonAPITest: IntegrationTestBase() {
 
 		mockPdlHttpServer.mockHentPerson(navBruker.person)
 		mockVeilarboppfolgingHttpServer.mockHentVeilederIdent(navBruker.person.personident, navAnsatt.navIdent)
-		mockVeilarboppfolgingHttpServer.mockHentOppfolgingperioder(navBruker.person.personident, navBruker.oppfolgingsperioder)
-		mockVeilarbvedtaksstotteHttpServer.mockHentInnsatsgruppe(navBruker.person.personident, Innsatsgruppe.TRENGER_VEILEDNING_NEDSATT_ARBEIDSEVNE)
+		mockVeilarboppfolgingHttpServer.mockHentOppfolgingperioder(
+			navBruker.person.personident,
+			navBruker.oppfolgingsperioder
+		)
+		mockVeilarbvedtaksstotteHttpServer.mockHentInnsatsgruppe(
+			navBruker.person.personident,
+			Innsatsgruppe.TRENGER_VEILEDNING_NEDSATT_ARBEIDSEVNE
+		)
 		mockVeilarbarenaHttpServer.mockHentBrukerOppfolgingsenhetId(navBruker.person.personident, navEnhet.enhetId)
-		mockKrrProxyHttpServer.mockHentKontaktinformasjon(MockKontaktinformasjon(navBruker.person.personident, navBruker.epost, navBruker.telefon))
+		mockKrrProxyHttpServer.mockHentKontaktinformasjon(
+			MockKontaktinformasjon(
+				navBruker.person.personident,
+				navBruker.epost,
+				navBruker.telefon
+			)
+		)
 		mockPoaoTilgangHttpServer.addErSkjermetResponse(mapOf(navBruker.person.personident to false))
 		mockNomHttpServer.mockHentNavAnsatt(navAnsatt.toModel())
 		mockNorgHttpServer.mockHentNavEnhet(navEnhet.toModel())
@@ -118,15 +127,17 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		val body = objectMapper.readValue<NavBrukerDto>(response.body!!.string())
-		val faktiskBruker = navBrukerService.hentNavBruker(navBruker.person.personident)!!
+		val body = objectMapper.readValue<NavBrukerDto>(response.body.string())
+		val faktiskBruker = navBrukerService.hentNavBruker(navBruker.person.personident)
 
-		sammenlign(faktiskBruker, body)
+		sammenlign(faktiskBruker.shouldNotBeNull(), body)
 
 		val ident = personService.hentIdenter(faktiskBruker.person.id).first()
-		ident.ident shouldBe body.personident
-		ident.type shouldBe IdentType.FOLKEREGISTERIDENT
-		ident.historisk shouldBe false
+		assertSoftly(ident) {
+			it.ident shouldBe body.personident
+			type shouldBe IdentType.FOLKEREGISTERIDENT
+			historisk shouldBe false
+		}
 	}
 
 	@Test
@@ -143,10 +154,10 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		val navBrukerDto = objectMapper.readValue<NavBrukerDto>(response.body!!.string())
-		val faktiskBruker = navBrukerService.hentNavBruker(navBruker.person.personident)!!
+		val navBrukerDto = objectMapper.readValue<NavBrukerDto>(response.body.string())
+		val faktiskBruker = navBrukerService.hentNavBruker(navBruker.person.personident)
 
-		sammenlign(faktiskBruker, navBrukerDto)
+		sammenlign(faktiskBruker.shouldNotBeNull(), navBrukerDto)
 	}
 
 	@Test
@@ -163,10 +174,22 @@ class PersonAPITest: IntegrationTestBase() {
 			)
 		)
 		mockVeilarboppfolgingHttpServer.mockHentVeilederIdent(navBruker.person.personident, navAnsatt.navIdent)
-		mockVeilarboppfolgingHttpServer.mockHentOppfolgingperioder(navBruker.person.personident, navBruker.oppfolgingsperioder)
-		mockVeilarbvedtaksstotteHttpServer.mockHentInnsatsgruppe(navBruker.person.personident, Innsatsgruppe.TRENGER_VEILEDNING_NEDSATT_ARBEIDSEVNE)
+		mockVeilarboppfolgingHttpServer.mockHentOppfolgingperioder(
+			navBruker.person.personident,
+			navBruker.oppfolgingsperioder
+		)
+		mockVeilarbvedtaksstotteHttpServer.mockHentInnsatsgruppe(
+			navBruker.person.personident,
+			Innsatsgruppe.TRENGER_VEILEDNING_NEDSATT_ARBEIDSEVNE
+		)
 		mockVeilarbarenaHttpServer.mockHentBrukerOppfolgingsenhetId(navBruker.person.personident, navEnhet.enhetId)
-		mockKrrProxyHttpServer.mockHentKontaktinformasjon(MockKontaktinformasjon(navBruker.person.personident, navBruker.epost, navBruker.telefon))
+		mockKrrProxyHttpServer.mockHentKontaktinformasjon(
+			MockKontaktinformasjon(
+				navBruker.person.personident,
+				navBruker.epost,
+				navBruker.telefon
+			)
+		)
 		mockPoaoTilgangHttpServer.addErSkjermetResponse(mapOf(navBruker.person.personident to false))
 		mockNomHttpServer.mockHentNavAnsatt(navAnsatt.toModel())
 		mockNorgHttpServer.mockHentNavEnhet(navEnhet.toModel())
@@ -181,10 +204,10 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		val navBrukerDto = objectMapper.readValue<NavBrukerDto>(response.body!!.string())
-		val faktiskBruker = navBrukerService.hentNavBruker(navBruker.person.personident)!!
+		val navBrukerDto = objectMapper.readValue<NavBrukerDto>(response.body.string())
+		val faktiskBruker = navBrukerService.hentNavBruker(navBruker.person.personident)
 
-		sammenlign(faktiskBruker, navBrukerDto)
+		sammenlign(faktiskBruker.shouldNotBeNull(), navBrukerDto)
 	}
 
 	@Test
@@ -203,14 +226,16 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		val body = objectMapper.readValue<NavAnsattDto>(response.body!!.string())
-		val faktiskNavAnsatt = navAnsattService.hentNavAnsatt(navAnsatt.navIdent)!!
+		val body = objectMapper.readValue<NavAnsattDto>(response.body.string())
+		val faktiskNavAnsatt = navAnsattService.hentNavAnsatt(navAnsatt.navIdent)
 
-		faktiskNavAnsatt.id shouldBe body.id
-		faktiskNavAnsatt.navIdent shouldBe body.navIdent
-		faktiskNavAnsatt.navn shouldBe body.navn
-		faktiskNavAnsatt.telefon shouldBe body.telefon
-		faktiskNavAnsatt.epost shouldBe body.epost
+		assertSoftly(faktiskNavAnsatt.shouldNotBeNull()) {
+			id shouldBe body.id
+			navIdent shouldBe body.navIdent
+			navn shouldBe body.navn
+			telefon shouldBe body.telefon
+			epost shouldBe body.epost
+		}
 	}
 
 	@Test
@@ -228,12 +253,14 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		val body = objectMapper.readValue<NavEnhetDto>(response.body!!.string())
-		val faktiskNavEnhet = navEnhetService.hentNavEnhet(navEnhet.enhetId)!!
+		val body = objectMapper.readValue<NavEnhetDto>(response.body.string())
+		val faktiskNavEnhet = navEnhetService.hentNavEnhet(navEnhet.enhetId)
 
-		faktiskNavEnhet.id shouldBe body.id
-		faktiskNavEnhet.enhetId shouldBe body.enhetId
-		faktiskNavEnhet.navn shouldBe body.navn
+		assertSoftly(faktiskNavEnhet.shouldNotBeNull()) {
+			id shouldBe body.id
+			enhetId shouldBe body.enhetId
+			navn shouldBe body.navn
+		}
 	}
 
 	@Test
@@ -252,7 +279,7 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		objectMapper.readValue<AdressebeskyttelseDto>(response.body!!.string()).gradering shouldBe gradering
+		objectMapper.readValue<AdressebeskyttelseDto>(response.body.string()).gradering shouldBe gradering
 	}
 
 	@Test
@@ -271,9 +298,8 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		objectMapper.readValue<AdressebeskyttelseDto>(response.body!!.string()).gradering shouldBe gradering
+		objectMapper.readValue<AdressebeskyttelseDto>(response.body.string()).gradering shouldBe gradering
 	}
-
 
 	@Test
 	fun `hentNavAnsatt - nav ansatt finnes - skal ha status 200 og returnere riktig response`() {
@@ -288,13 +314,15 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		val body = objectMapper.readValue<NavAnsattDto>(response.body!!.string())
+		val body = objectMapper.readValue<NavAnsattDto>(response.body.string())
 
-		navAnsatt.id shouldBe body.id
-		navAnsatt.navIdent shouldBe body.navIdent
-		navAnsatt.navn shouldBe body.navn
-		navAnsatt.telefon shouldBe body.telefon
-		navAnsatt.epost shouldBe body.epost
+		assertSoftly(body) {
+			id shouldBe navAnsatt.id
+			navIdent shouldBe navAnsatt.navIdent
+			navn shouldBe navAnsatt.navn
+			telefon shouldBe navAnsatt.telefon
+			epost shouldBe navAnsatt.epost
+		}
 	}
 
 	@Test
@@ -310,11 +338,13 @@ class PersonAPITest: IntegrationTestBase() {
 
 		response.code shouldBe 200
 
-		val body = objectMapper.readValue<NavEnhetDto>(response.body!!.string())
+		val body = objectMapper.readValue<NavEnhetDto>(response.body.string())
 
-		navEnhet.id shouldBe body.id
-		navEnhet.enhetId shouldBe body.enhetId
-		navEnhet.navn shouldBe body.navn
+		assertSoftly(body) {
+			id shouldBe navEnhet.id
+			enhetId shouldBe navEnhet.enhetId
+			navn shouldBe navEnhet.navn
+		}
 	}
 
 	@Test
@@ -334,10 +364,12 @@ class PersonAPITest: IntegrationTestBase() {
 		requestBuilders.forEach {
 			val utenTokenResponse = client.newCall(it.build()).execute()
 			utenTokenResponse.code shouldBe 401
-			val feilTokenResponse = client.newCall(it.header(
-				name = "Authorization",
-				value = "Bearer ${mockOAuthServer.issueToken(issuer = "ikke-azuread")}")
-				.build()
+			val feilTokenResponse = client.newCall(
+				it.header(
+					name = "Authorization",
+					value = "Bearer ${mockOAuthServer.issueToken(issuer = "ikke-azuread")}"
+				)
+					.build()
 			).execute()
 			feilTokenResponse.code shouldBe 401
 		}
@@ -347,23 +379,28 @@ class PersonAPITest: IntegrationTestBase() {
 		faktiskBruker: NavBruker,
 		brukerDto: NavBrukerDto,
 	) {
-		faktiskBruker.person.id shouldBe brukerDto.personId
-		faktiskBruker.person.personident shouldBe brukerDto.personident
-		faktiskBruker.person.fornavn shouldBe brukerDto.fornavn
-		faktiskBruker.person.mellomnavn shouldBe brukerDto.mellomnavn
-		faktiskBruker.person.etternavn shouldBe brukerDto.etternavn
-		faktiskBruker.telefon shouldBe brukerDto.telefon
-		faktiskBruker.epost shouldBe brukerDto.epost
-		faktiskBruker.navVeileder?.id shouldBe brukerDto.navVeilederId
-		faktiskBruker.navEnhet?.id shouldBe brukerDto.navEnhet?.id
-		faktiskBruker.navEnhet?.enhetId shouldBe brukerDto.navEnhet?.enhetId
-		faktiskBruker.navEnhet?.navn shouldBe brukerDto.navEnhet?.navn
-		faktiskBruker.telefon shouldBe brukerDto.telefon
-		faktiskBruker.epost shouldBe brukerDto.epost
-		faktiskBruker.erSkjermet shouldBe brukerDto.erSkjermet
-		faktiskBruker.adressebeskyttelse shouldBe brukerDto.adressebeskyttelse
-		faktiskBruker.oppfolgingsperioder shouldBe brukerDto.oppfolgingsperioder
-		faktiskBruker.innsatsgruppe shouldBe brukerDto.innsatsgruppe
-	}
+		assertSoftly(faktiskBruker) {
+			assertSoftly(person) {
+				id shouldBe brukerDto.personId
+				personident shouldBe brukerDto.personident
+				fornavn shouldBe brukerDto.fornavn
+				mellomnavn shouldBe brukerDto.mellomnavn
+				etternavn shouldBe brukerDto.etternavn
+			}
 
+			telefon shouldBe brukerDto.telefon
+			epost shouldBe brukerDto.epost
+			navVeileder?.id shouldBe brukerDto.navVeilederId
+			navEnhet?.id shouldBe brukerDto.navEnhet?.id
+			navEnhet?.enhetId shouldBe brukerDto.navEnhet?.enhetId
+			navEnhet?.navn shouldBe brukerDto.navEnhet?.navn
+			telefon shouldBe brukerDto.telefon
+			epost shouldBe brukerDto.epost
+			erSkjermet shouldBe brukerDto.erSkjermet
+			adressebeskyttelse shouldBe brukerDto.adressebeskyttelse
+			oppfolgingsperioder shouldBe brukerDto.oppfolgingsperioder
+			innsatsgruppe shouldBe brukerDto.innsatsgruppe
+		}
+	}
 }
+

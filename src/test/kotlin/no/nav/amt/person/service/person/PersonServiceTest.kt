@@ -1,6 +1,8 @@
 package no.nav.amt.person.service.person
 
+import io.kotest.assertions.assertSoftly
 import io.kotest.matchers.shouldBe
+import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.amt.person.service.clients.pdl.PdlClient
@@ -16,29 +18,22 @@ import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.support.TransactionTemplate
 
 class PersonServiceTest {
+	private val pdlClient: PdlClient = mockk(relaxUnitFun = true)
+	private val personRepository: PersonRepository = mockk(relaxUnitFun = true)
+	private val personidentRepository: PersonidentRepository = mockk(relaxUnitFun = true)
+	private val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxUnitFun = true)
+	private val transactionTemplate: TransactionTemplate = mockk()
 
-	lateinit var pdlClient: PdlClient
-	lateinit var repository: PersonRepository
-	lateinit var personidentRepository: PersonidentRepository
-	lateinit var service: PersonService
-	lateinit var applicationEventPublisher: ApplicationEventPublisher
-	lateinit var transactionTemplate: TransactionTemplate
+	private val service = PersonService(
+		pdlClient = pdlClient,
+		repository = personRepository,
+		personidentRepository = personidentRepository,
+		applicationEventPublisher = applicationEventPublisher,
+		transactionTemplate = transactionTemplate
+	)
 
 	@BeforeEach
-	fun setup() {
-		pdlClient = mockk(relaxUnitFun = true)
-		repository = mockk(relaxUnitFun = true)
-		personidentRepository = mockk(relaxUnitFun = true)
-		applicationEventPublisher = mockk(relaxUnitFun = true)
-		transactionTemplate = mockk()
-		service = PersonService(
-			pdlClient = pdlClient,
-			repository = repository,
-			personidentRepository = personidentRepository,
-			applicationEventPublisher = applicationEventPublisher,
-			transactionTemplate = transactionTemplate
-		)
-	}
+	fun setup() = clearAllMocks()
 
 	@Test
 	fun `hentEllerOpprettPerson - personen finnes ikke - opprettes og returnere person`() {
@@ -58,14 +53,16 @@ class PersonServiceTest {
 		)
 
 		every { pdlClient.hentPerson(personident) } returns pdlPerson
-		every { repository.get(personident) } returns null
+		every { personRepository.get(personident) } returns null
 		mockExecuteWithoutResult(transactionTemplate)
 
 		val person = service.hentEllerOpprettPerson(personident)
-		person.personident shouldBe personident
-		person.fornavn shouldBe pdlPerson.fornavn
-		person.mellomnavn shouldBe pdlPerson.mellomnavn
-		person.etternavn shouldBe pdlPerson.etternavn
+		assertSoftly(person) {
+			personident shouldBe personident
+			fornavn shouldBe pdlPerson.fornavn
+			mellomnavn shouldBe pdlPerson.mellomnavn
+			etternavn shouldBe pdlPerson.etternavn
+		}
 	}
 
 	@Test
@@ -76,13 +73,12 @@ class PersonServiceTest {
 			Personident(TestData.randomIdent(), true, IdentType.FOLKEREGISTERIDENT),
 		)
 
-		every { repository.getPersoner(identer.map { it.ident }) } returns
+		every { personRepository.getPersoner(identer.map { it.ident }) } returns
 			identer.map { TestData.lagPerson(personident = it.ident) }
 		mockExecuteWithoutResult(transactionTemplate)
 
 		assertThrows<IllegalStateException> {
 			service.oppdaterPersonIdent(identer)
 		}
-
 	}
 }

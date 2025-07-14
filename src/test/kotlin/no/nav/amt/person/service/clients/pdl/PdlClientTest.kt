@@ -1,5 +1,6 @@
 package no.nav.amt.person.service.clients.pdl
 
+import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.json.shouldEqualJson
 import io.kotest.matchers.shouldBe
 import no.nav.amt.person.service.clients.pdl.PdlClientTestData.errorPrefix
@@ -10,11 +11,11 @@ import no.nav.amt.person.service.clients.pdl.PdlClientTestData.minimalFeilRespon
 import no.nav.amt.person.service.clients.pdl.PdlClientTestData.nullError
 import no.nav.amt.person.service.clients.pdl.PdlClientTestData.telefonResponse
 import no.nav.amt.person.service.data.TestData
+import no.nav.amt.person.service.integration.IntegrationTestBase
 import no.nav.amt.person.service.person.model.IdentType
 import no.nav.amt.person.service.person.model.Personident
 import no.nav.amt.person.service.poststed.Postnummer
 import no.nav.amt.person.service.poststed.PoststedRepository
-import no.nav.amt.person.service.utils.SingletonPostgresContainer
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.AfterEach
@@ -22,15 +23,13 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.util.UUID
 
-class PdlClientTest {
+class PdlClientTest(
+	private val poststedRepository: PoststedRepository
+): IntegrationTestBase() {
 	private lateinit var serverUrl: String
 	private lateinit var server: MockWebServer
-	private val dataSource = SingletonPostgresContainer.getDataSource()
-	private val jdbcTemplate = NamedParameterJdbcTemplate(dataSource)
-	private val poststedRepository = PoststedRepository(jdbcTemplate)
 
 	@BeforeEach
 	fun setup() {
@@ -50,7 +49,7 @@ class PdlClientTest {
 
 	@AfterEach
 	fun cleanup() {
-		jdbcTemplate.update("DELETE FROM postnummer", MapSqlParameterSource())
+		template.update("DELETE FROM postnummer", MapSqlParameterSource())
 		server.shutdown()
 	}
 
@@ -79,9 +78,11 @@ class PdlClientTest {
 		pdlPerson.adresse?.bostedsadresse?.matrikkeladresse?.poststed shouldBe "OSLO"
 
 		val ident = pdlPerson.identer.first()
-		ident.type shouldBe IdentType.FOLKEREGISTERIDENT
-		ident.historisk shouldBe false
-		ident.ident shouldBe "29119826819"
+		assertSoftly(ident) {
+			type shouldBe IdentType.FOLKEREGISTERIDENT
+			historisk shouldBe false
+			it.ident shouldBe "29119826819"
+		}
 
 		val request = server.takeRequest()
 

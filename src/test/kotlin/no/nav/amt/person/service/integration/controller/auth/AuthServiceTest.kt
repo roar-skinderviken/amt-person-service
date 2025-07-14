@@ -89,8 +89,8 @@ class AuthServiceTest {
 		}
 	}
 
-	private fun mockContextHolder(issuer: String, token: String) : TokenValidationContextHolder {
-		return object: TokenValidationContextHolder {
+	private fun mockContextHolder(issuer: String, token: String): TokenValidationContextHolder {
+		return object : TokenValidationContextHolder {
 			override fun getTokenValidationContext(): TokenValidationContext {
 				return TokenValidationContext(
 					mapOf(
@@ -98,10 +98,11 @@ class AuthServiceTest {
 					)
 				)
 			}
+
 			override fun setTokenValidationContext(tokenValidationContext: TokenValidationContext?) {
 				throw NotImplementedError()
 			}
 		}
 	}
-
 }
+
