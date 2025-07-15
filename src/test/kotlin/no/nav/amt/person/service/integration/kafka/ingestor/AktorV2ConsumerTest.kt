@@ -1,26 +1,23 @@
 package no.nav.amt.person.service.integration.kafka.ingestor
 
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import no.nav.amt.person.service.data.TestData
 import no.nav.amt.person.service.integration.IntegrationTestBase
 import no.nav.amt.person.service.integration.kafka.utils.KafkaMessageSender
 import no.nav.amt.person.service.person.PersonService
 import no.nav.amt.person.service.person.model.IdentType
-import no.nav.amt.person.service.utils.AsyncUtils
 import no.nav.person.pdl.aktor.v2.Aktor
 import no.nav.person.pdl.aktor.v2.Identifikator
 import no.nav.person.pdl.aktor.v2.Type
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 
-class AktorV2ConsumerTest : IntegrationTestBase() {
-
-	@Autowired
-	lateinit var kafkaMessageSender: KafkaMessageSender
-
-	@Autowired
-	lateinit var personService: PersonService
+class AktorV2ConsumerTest(
+	private val kafkaMessageSender: KafkaMessageSender,
+	private val personService: PersonService
+) : IntegrationTestBase() {
 
 	@Test
 	fun `ingest - ny person ident - oppdaterer person`() {
@@ -40,17 +37,17 @@ class AktorV2ConsumerTest : IntegrationTestBase() {
 
 		kafkaMessageSender.sendTilAktorV2Topic("aktorId", msg, 1)
 
-		AsyncUtils.eventually {
+		await().untilAsserted {
 			val faktiskPerson = personService.hentPerson(nyttFnr)
 
-			val identer = personService.hentIdenter(faktiskPerson!!.id)
+			faktiskPerson.shouldNotBeNull()
+			val identer = personService.hentIdenter(faktiskPerson.id)
 
-			identer.find { it.ident == person.personident }!!.let {
+			identer.first { it.ident == person.personident }.let {
 				it.historisk shouldBe true
 				it.type shouldBe IdentType.FOLKEREGISTERIDENT
 			}
 		}
-
 	}
 
 	@Test
@@ -73,18 +70,18 @@ class AktorV2ConsumerTest : IntegrationTestBase() {
 
 		kafkaMessageSender.sendTilAktorV2Topic("aktorId", msg, 1)
 
-		AsyncUtils.eventually {
+		await().untilAsserted {
 			val faktiskPerson = personService.hentPerson(nyttFnr)
 
-			faktiskPerson!!.personident shouldBe nyttFnr
+			faktiskPerson.shouldNotBeNull()
+			faktiskPerson.personident shouldBe nyttFnr
 
 			val identer = personService.hentIdenter(faktiskPerson.id)
 
 			identer shouldHaveSize 3
 
-			identer.find { it.ident == person.personident }!!.historisk shouldBe true
+			identer.first { it.ident == person.personident }.historisk shouldBe true
 		}
-
 	}
-
 }
+
