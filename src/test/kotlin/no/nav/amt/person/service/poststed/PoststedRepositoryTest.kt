@@ -1,18 +1,18 @@
 package no.nav.amt.person.service.poststed
 
 import io.kotest.matchers.shouldBe
-import no.nav.amt.person.service.utils.SingletonPostgresContainer
+import no.nav.amt.person.service.data.RepositoryTestBase
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.util.UUID
 
-class PoststedRepositoryTest {
-	private val dataSource = SingletonPostgresContainer.getDataSource()
-	private val jdbcTemplate = NamedParameterJdbcTemplate(dataSource)
-	private val poststedRepository = PoststedRepository(jdbcTemplate)
+@SpringBootTest(classes = [PoststedRepository::class])
+class PoststedRepositoryTest(
+	private val poststedRepository: PoststedRepository
+) : RepositoryTestBase() {
 
 	@BeforeEach
 	fun before() {
@@ -29,7 +29,7 @@ class PoststedRepositoryTest {
 
 	@AfterEach
 	fun after() {
-		jdbcTemplate.update("DELETE FROM postnummer", MapSqlParameterSource())
+		template.update("DELETE FROM postnummer", MapSqlParameterSource())
 	}
 
 	@Test
@@ -133,7 +133,7 @@ class PoststedRepositoryTest {
 
 	private fun lagrePostnummerForTest(postnummer: List<Postnummer>) {
 		postnummer.forEach {
-			jdbcTemplate.update(
+			template.update(
 				"""
             INSERT INTO postnummer(postnummer, poststed)
             VALUES (:postnummer, :poststed);

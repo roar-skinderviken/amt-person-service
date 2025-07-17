@@ -1,22 +1,20 @@
 package no.nav.amt.person.service.integration.kafka.ingestor
 
+import io.kotest.assertions.assertSoftly
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import no.nav.amt.person.service.data.TestData
 import no.nav.amt.person.service.data.kafka.KafkaMessageCreator
 import no.nav.amt.person.service.integration.IntegrationTestBase
 import no.nav.amt.person.service.integration.kafka.utils.KafkaMessageSender
 import no.nav.amt.person.service.nav_bruker.NavBrukerService
-import no.nav.amt.person.service.utils.AsyncUtils
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 
-class EndringPaaBrukerConsumerTest : IntegrationTestBase() {
-
-	@Autowired
-	lateinit var kafkaMessageSender: KafkaMessageSender
-
-	@Autowired
-	lateinit var navBrukerService: NavBrukerService
+class EndringPaaBrukerConsumerTest(
+	private val kafkaMessageSender: KafkaMessageSender,
+	private val navBrukerService: NavBrukerService
+) : IntegrationTestBase() {
 
 	@Test
 	fun `ingest - bruker finnes, har ikke nav kontor - oppretter og oppdaterer nav kontor`() {
@@ -33,14 +31,13 @@ class EndringPaaBrukerConsumerTest : IntegrationTestBase() {
 		mockNorgHttpServer.addNavEnhet(navEnhet.enhetId, navEnhet.navn)
 		kafkaMessageSender.sendTilEndringPaaBrukerTopic(msg.toJson())
 
-
-		AsyncUtils.eventually {
+		await().untilAsserted {
 			val faktiskBruker = navBrukerService.hentNavBruker(navBruker.id)
 
-			faktiskBruker.navEnhet!!.enhetId shouldBe navEnhet.enhetId
-			faktiskBruker.navEnhet!!.navn shouldBe navEnhet.navn
-
+			assertSoftly(faktiskBruker.navEnhet.shouldNotBeNull()) {
+				enhetId shouldBe navEnhet.enhetId
+				navn shouldBe navEnhet.navn
+			}
 		}
 	}
-
 }

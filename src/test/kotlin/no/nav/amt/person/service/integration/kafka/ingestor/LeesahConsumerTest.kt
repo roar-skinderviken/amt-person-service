@@ -9,22 +9,16 @@ import no.nav.amt.person.service.nav_bruker.Adressebeskyttelse
 import no.nav.amt.person.service.nav_bruker.NavBrukerService
 import no.nav.amt.person.service.person.PersonService
 import no.nav.amt.person.service.person.model.AdressebeskyttelseGradering
-import no.nav.amt.person.service.utils.AsyncUtils
 import no.nav.amt.person.service.utils.titlecase
 import no.nav.person.pdl.leesah.adressebeskyttelse.Gradering
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 
-class LeesahConsumerTest : IntegrationTestBase() {
-
-	@Autowired
-	lateinit var kafkaMessageSender: KafkaMessageSender
-
-	@Autowired
-	lateinit var personService: PersonService
-
-	@Autowired
-	lateinit var navBrukerService: NavBrukerService
+class LeesahConsumerTest(
+	private val kafkaMessageSender: KafkaMessageSender,
+	private val personService: PersonService,
+	private val navBrukerService: NavBrukerService
+) : IntegrationTestBase() {
 
 	@Test
 	internal fun `Ingest - nav bruker finnes - oppdaterer navn`() {
@@ -56,15 +50,15 @@ class LeesahConsumerTest : IntegrationTestBase() {
 
 		kafkaMessageSender.sendTilLeesahTopic("aktorId", msg, 1)
 
-		AsyncUtils.eventually {
+		await().untilAsserted {
 			val faktiskPerson = personService.hentPerson(person.id)
 
 			faktiskPerson.fornavn shouldBe nyttFornavn.titlecase()
 			faktiskPerson.mellomnavn shouldBe nyttMellomnavn.titlecase()
 			faktiskPerson.etternavn shouldBe nyttEtternavn.titlecase()
 		}
-
 	}
+
 	@Test
 	internal fun `Ingest - person får adressebeskyttelse - oppdaterer navbruker`() {
 		val navBruker = TestData.lagNavBruker(adresse = TestData.lagAdresse())
@@ -85,7 +79,7 @@ class LeesahConsumerTest : IntegrationTestBase() {
 
 		kafkaMessageSender.sendTilLeesahTopic("aktorId", msg, 1)
 
-		AsyncUtils.eventually {
+		await().untilAsserted {
 			val oppdatertNavBruker = navBrukerService.hentNavBruker(navBruker.person.personident)
 
 			oppdatertNavBruker?.adressebeskyttelse shouldBe Adressebeskyttelse.STRENGT_FORTROLIG
