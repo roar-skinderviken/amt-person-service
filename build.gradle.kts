@@ -34,6 +34,12 @@ val jacksonVersion = "2.19.1"
 val mockOauth2ServerVersion = "2.2.1"
 val logstashEncoderVersion = "8.1"
 
+dependencyManagement {
+    imports {
+        mavenBom("org.testcontainers:testcontainers-bom:$testcontainersVersion")
+    }
+}
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -80,9 +86,8 @@ dependencies {
     testImplementation("io.kotest:kotest-assertions-json-jvm:$kotestVersion")
     testImplementation("com.squareup.okhttp3:mockwebserver:$okhttp3Version")
 
-    testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
-    testImplementation("org.testcontainers:kafka:$testcontainersVersion")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:kafka")
     testImplementation("io.mockk:mockk-jvm:$mockkVersion")
     testImplementation("no.nav.security:mock-oauth2-server:$mockOauth2ServerVersion")
 }
