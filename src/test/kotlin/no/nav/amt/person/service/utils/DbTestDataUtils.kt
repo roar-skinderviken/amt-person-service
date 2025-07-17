@@ -35,5 +35,4 @@ object DbTestDataUtils {
 
 		return jdbcTemplate.query(sql, { rs, _ -> rs.getString(1) }, schema)
 	}
-
 }

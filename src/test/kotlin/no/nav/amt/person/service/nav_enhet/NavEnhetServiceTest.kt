@@ -1,6 +1,9 @@
 package no.nav.amt.person.service.nav_enhet
 
+import io.kotest.assertions.assertSoftly
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.amt.person.service.clients.norg.NorgClient
@@ -11,23 +14,18 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class NavEnhetServiceTest {
+	private val norgClient: NorgClient = mockk()
+	private val navEnhetRepository: NavEnhetRepository = mockk(relaxUnitFun = true)
+	private val veilarbarenaClient: VeilarbarenaClient = mockk()
 
-	lateinit var norgClient: NorgClient
-	lateinit var navEnhetRepository: NavEnhetRepository
-	lateinit var veilarbarenaClient: VeilarbarenaClient
-	lateinit var service: NavEnhetService
+	private val service = NavEnhetService(
+		navEnhetRepository = navEnhetRepository,
+		norgClient = norgClient,
+		veilarbarenaClient = veilarbarenaClient,
+	)
 
 	@BeforeEach
-	fun setup() {
-		norgClient = mockk()
-		navEnhetRepository = mockk(relaxUnitFun = true)
-		veilarbarenaClient = mockk()
-		service = NavEnhetService(
-			navEnhetRepository = navEnhetRepository,
-			norgClient = norgClient,
-			veilarbarenaClient = veilarbarenaClient,
-		)
-	}
+	fun setup() = clearAllMocks()
 
 	@Test
 	fun `hentNavEnhetForBruker - enhet finnes ikke - skal opprette enhet`() {
@@ -39,10 +37,9 @@ class NavEnhetServiceTest {
 		every { norgClient.hentNavEnhet(enhet.enhetId) } returns NorgNavEnhet(enhet.enhetId, enhet.navn)
 
 		val faktiskEnhet = service.hentNavEnhetForBruker(personident)!!
-
-		faktiskEnhet.enhetId shouldBe enhet.enhetId
-		faktiskEnhet.navn shouldBe enhet.navn
+		assertSoftly(faktiskEnhet.shouldNotBeNull()) {
+			enhetId shouldBe enhet.enhetId
+			navn shouldBe enhet.navn
+		}
 	}
-
-
 }

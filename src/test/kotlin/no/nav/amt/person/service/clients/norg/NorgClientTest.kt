@@ -20,9 +20,7 @@ class NorgClientTest {
 	}
 
 	@AfterEach
-	fun cleanup() {
-		server.shutdown()
-	}
+	fun cleanup() = server.shutdown()
 
 	@Test
 	fun `hentNavEnhetNavn skal lage riktig request og parse respons`() {
@@ -61,5 +59,4 @@ class NorgClientTest {
 
 		request.path shouldBe "/norg2/api/v1/enhet/1234"
 	}
-
 }

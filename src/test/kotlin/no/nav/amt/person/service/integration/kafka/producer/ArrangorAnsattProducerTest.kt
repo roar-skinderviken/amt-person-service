@@ -1,5 +1,6 @@
 package no.nav.amt.person.service.integration.kafka.producer
 
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import no.nav.amt.person.service.data.TestData
@@ -13,18 +14,12 @@ import no.nav.amt.person.service.person.model.Person
 import no.nav.amt.person.service.person.model.Rolle
 import no.nav.amt.person.service.utils.JsonUtils.toJsonString
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 
-class ArrangorAnsattProducerTest : IntegrationTestBase() {
-
-	@Autowired
-	lateinit var kafkaProducerService: KafkaProducerService
-
-	@Autowired
-	lateinit var kafkaTopicProperties: KafkaTopicProperties
-
-	@Autowired
-	lateinit var personService: PersonService
+class ArrangorAnsattProducerTest(
+	private val kafkaProducerService: KafkaProducerService,
+	private val kafkaTopicProperties: KafkaTopicProperties,
+	private val personService: PersonService,
+) : IntegrationTestBase() {
 
 	@Test
 	fun `publiserArrangorAnsatt - skal publisere ansatt med riktig key og value`() {
@@ -32,11 +27,12 @@ class ArrangorAnsattProducerTest : IntegrationTestBase() {
 
 		kafkaProducerService.publiserArrangorAnsatt(ansatt)
 
-		val record  = consume(kafkaTopicProperties.amtArrangorAnsattPersonaliaTopic)!!
-			.first { it.key() == ansatt.id.toString() }
+		val record = consume(kafkaTopicProperties.amtArrangorAnsattPersonaliaTopic)
+			?.first { it.key() == ansatt.id.toString() }
 
 		val forventetValue = ansattTilV1Json(ansatt)
 
+		record.shouldNotBeNull()
 		record.key() shouldBe ansatt.id.toString()
 		record.value() shouldBe forventetValue
 	}
@@ -50,11 +46,12 @@ class ArrangorAnsattProducerTest : IntegrationTestBase() {
 		val oppdatertAnsatt = ansatt.copy(fornavn = "Nytt", mellomnavn = null, etternavn = "Navn").toModel()
 		personService.upsert(oppdatertAnsatt)
 
-		val record  = consume(kafkaTopicProperties.amtArrangorAnsattPersonaliaTopic)!!
-			.first { it.key() == ansatt.id.toString() }
+		val record = consume(kafkaTopicProperties.amtArrangorAnsattPersonaliaTopic)
+			?.first { it.key() == ansatt.id.toString() }
 
 		val forventetValue = ansattTilV1Json(oppdatertAnsatt)
 
+		record.shouldNotBeNull()
 		record.key() shouldBe ansatt.id.toString()
 		record.value() shouldBe forventetValue
 	}
@@ -68,9 +65,8 @@ class ArrangorAnsattProducerTest : IntegrationTestBase() {
 		val oppdaterNavBruker = navBruker.copy(fornavn = "Nytt", mellomnavn = null, etternavn = "Navn").toModel()
 		personService.upsert(oppdaterNavBruker)
 
-		consume(kafkaTopicProperties.amtArrangorAnsattPersonaliaTopic)!!
-			.firstOrNull { it.key() == navBruker.id.toString() } shouldBe null
-
+		consume(kafkaTopicProperties.amtArrangorAnsattPersonaliaTopic)
+			?.firstOrNull { it.key() == navBruker.id.toString() } shouldBe null
 	}
 
 	@Test
@@ -84,21 +80,17 @@ class ArrangorAnsattProducerTest : IntegrationTestBase() {
 		val oppdatertPerson = person.copy(fornavn = "Nytt", mellomnavn = null, etternavn = "Navn").toModel()
 		personService.upsert(oppdatertPerson)
 
-		consume(kafkaTopicProperties.amtArrangorAnsattPersonaliaTopic)!!
-			.firstOrNull { it.key() == person.id.toString() } shouldNotBe null
-
+		consume(kafkaTopicProperties.amtArrangorAnsattPersonaliaTopic)
+			?.firstOrNull { it.key() == person.id.toString() } shouldNotBe null
 	}
 
-	private fun ansattTilV1Json(ansatt: Person): String {
-		return toJsonString(
-			ArrangorAnsattDtoV1(
-				id = ansatt.id,
-				personident = ansatt.personident,
-				fornavn = ansatt.fornavn,
-				mellomnavn = ansatt.mellomnavn,
-				etternavn = ansatt.etternavn
-			)
+	private fun ansattTilV1Json(ansatt: Person): String = toJsonString(
+		ArrangorAnsattDtoV1(
+			id = ansatt.id,
+			personident = ansatt.personident,
+			fornavn = ansatt.fornavn,
+			mellomnavn = ansatt.mellomnavn,
+			etternavn = ansatt.etternavn
 		)
-	}
-
+	)
 }

@@ -6,12 +6,10 @@ data class EndringPaaBrukerMsg(
 	val fodlsesnummer: String,
 	val oppfolgingsenhet: String?,
 ) {
-	fun toJson(): String {
-		return """
-			{
-				"fodselsnummer": ${this.fodlsesnummer},
-				"oppfolgingsenhet": ${nullableStringJsonValue(this.oppfolgingsenhet)}
-			}
-		""".trimIndent()
-	}
+	fun toJson(): String = """
+		{
+			"fodselsnummer": ${this.fodlsesnummer},
+			"oppfolgingsenhet": ${nullableStringJsonValue(this.oppfolgingsenhet)}
+		}
+	""".trimIndent()
 }
