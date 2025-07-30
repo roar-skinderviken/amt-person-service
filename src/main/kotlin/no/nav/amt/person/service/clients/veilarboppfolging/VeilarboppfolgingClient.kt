@@ -3,11 +3,14 @@ package no.nav.amt.person.service.clients.veilarboppfolging
 import no.nav.amt.person.service.navbruker.Oppfolgingsperiode
 import no.nav.amt.person.service.utils.JsonUtils.fromJsonString
 import no.nav.amt.person.service.utils.JsonUtils.toJsonString
+import no.nav.amt.person.service.utils.toSystemZoneLocalDateTime
 import no.nav.common.rest.client.RestClient.baseClient
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.function.Supplier
@@ -33,16 +36,13 @@ class VeilarboppfolgingClient(
 				.build()
 
 		httpClient.newCall(request).execute().use { response ->
-			response
-				.takeIf { !it.isSuccessful }
-				?.let { throw RuntimeException("Uventet status ved kall mot veilarboppfolging ${it.code}") }
+			if (!response.isSuccessful) {
+				throw RuntimeException("Uventet status ved kall mot veilarboppfolging ${response.code}")
+			}
 
-			response
-				.takeIf { it.code == 204 }
-				?.let { return null }
+			if (response.code == HttpStatus.NO_CONTENT.value()) return null
 
 			val veilederRespons = fromJsonString<HentBrukersVeilederResponse>(response.body.string())
-
 			return veilederRespons.veilederIdent
 		}
 	}
@@ -53,8 +53,8 @@ class VeilarboppfolgingClient(
 			Request
 				.Builder()
 				.url("$apiUrl/api/v3/oppfolging/hent-perioder")
-				.header("Accept", "application/json; charset=utf-8")
-				.header("Authorization", "Bearer ${veilarboppfolgingTokenProvider.get()}")
+				.header(HttpHeaders.ACCEPT, "application/json; charset=utf-8")
+				.header(HttpHeaders.AUTHORIZATION, "Bearer ${veilarboppfolgingTokenProvider.get()}")
 				.post(personRequestJson.toRequestBody(mediaTypeJson))
 				.build()
 
@@ -64,7 +64,6 @@ class VeilarboppfolgingClient(
 			}
 
 			val oppfolgingsperioderRespons = fromJsonString<List<OppfolgingPeriodeDTO>>(response.body.string())
-
 			return oppfolgingsperioderRespons.map { it.toOppfolgingsperiode() }
 		}
 	}
@@ -85,8 +84,8 @@ class VeilarboppfolgingClient(
 		fun toOppfolgingsperiode() =
 			Oppfolgingsperiode(
 				id = uuid,
-				startdato = startDato.toLocalDateTime(),
-				sluttdato = sluttDato?.toLocalDateTime(),
+				startdato = startDato.toSystemZoneLocalDateTime(),
+				sluttdato = sluttDato?.toSystemZoneLocalDateTime(),
 			)
 	}
 }
